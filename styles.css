@@ -313,67 +313,145 @@ select.journal-input { cursor: pointer; appearance: none; }
 .tab-panel.active { display: block; animation: tabIn 0.28s cubic-bezier(0.22,1,0.36,1) both; }
 @keyframes tabIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
-/* SUMMARY STAT CARDS — scrapbook paper with washi tape */
+/* =====================================================
+   FLIP STAT CARDS — scrapbook paper front, terracotta back
+   ===================================================== */
 .summary-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
-  gap: 20px; margin-bottom: 44px;
-  /* extra top padding so washi tapes don't clip */
-  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+  margin-bottom: 44px;
+  padding-top: 18px; /* room for washi tape overhang */
 }
+
+/* Outer container — holds perspective + the slight paper rotation */
 .summary-stat {
-  background: #FFF9EB;
-  background-image: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,248,228,0.15) 100%);
-  border: 1.5px solid var(--outline-var);
-  padding: 28px 16px 20px;
-  text-align: center;
-  box-shadow: 4px 5px 0 rgba(29,28,19,0.22), 0 2px 14px rgba(29,28,19,0.08);
-  transition: transform var(--transition), box-shadow var(--transition);
+  background-color: transparent;
+  height: 165px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+/* The two-sided flipper */
+.flip-inner {
   position: relative;
-  overflow: visible; /* let washi tape stick out above card */
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.75s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
 }
-/* Washi tape strip in the top corner — unique color per card */
-.summary-stat::before {
+
+/* Flip on hover */
+.summary-stat:hover .flip-inner {
+  transform: rotateY(180deg);
+}
+
+/* Shared face styles */
+.flip-front, .flip-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  gap: 4px;
+}
+
+/* ── FRONT FACE — warm cream paper ── */
+.flip-front {
+  background: #FFF9EB;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,248,220,0.2) 100%);
+  border: 1.5px solid var(--outline-var);
+  box-shadow: 4px 5px 0 rgba(29,28,19,0.22), 0 2px 14px rgba(29,28,19,0.08);
+  overflow: visible;
+  position: relative;
+}
+
+/* Washi tape strip sticking out above each front face */
+.flip-front::before {
   content: '';
-  position: absolute; top: -9px; left: 14px;
-  width: 62px; height: 19px;
+  position: absolute; top: -10px; left: 14px;
+  width: 64px; height: 20px;
   border-radius: 2px;
-  opacity: 0.92; mix-blend-mode: multiply;
+  opacity: 0.93; mix-blend-mode: multiply;
+  pointer-events: none;
 }
-.summary-stat:nth-child(1) {
-  transform: rotate(-1deg);
-}
-.summary-stat:nth-child(1)::before {
+
+/* Unique washi color + rotation per card (via nth-child on .summary-stat) */
+.summary-stat:nth-child(1) { transform: rotate(-1deg); }
+.summary-stat:nth-child(1) .flip-front::before {
   background: repeating-linear-gradient(90deg, rgba(214,231,161,0.95) 0px, rgba(185,215,120,0.88) 4px, rgba(214,231,161,0.95) 8px);
   transform: rotate(-2.5deg);
 }
-.summary-stat:nth-child(2) {
-  transform: rotate(1deg);
-}
-.summary-stat:nth-child(2)::before {
+
+.summary-stat:nth-child(2) { transform: rotate(1deg); }
+.summary-stat:nth-child(2) .flip-front::before {
   background: repeating-linear-gradient(90deg, rgba(255,181,151,0.95) 0px, rgba(240,155,115,0.88) 4px, rgba(255,181,151,0.95) 8px);
   transform: rotate(2.5deg); left: auto; right: 12px;
 }
-.summary-stat:nth-child(3) {
-  transform: rotate(-0.5deg);
-}
-.summary-stat:nth-child(3)::before {
+
+.summary-stat:nth-child(3) { transform: rotate(-0.5deg); }
+.summary-stat:nth-child(3) .flip-front::before {
   background: repeating-linear-gradient(90deg, rgba(168,202,234,0.95) 0px, rgba(138,182,222,0.88) 4px, rgba(168,202,234,0.95) 8px);
   transform: rotate(-2deg);
 }
-.summary-stat:nth-child(4) {
-  transform: rotate(0.8deg);
-}
-.summary-stat:nth-child(4)::before {
+
+.summary-stat:nth-child(4) { transform: rotate(0.8deg); }
+.summary-stat:nth-child(4) .flip-front::before {
   background: repeating-linear-gradient(90deg, rgba(240,180,200,0.95) 0px, rgba(220,152,178,0.88) 4px, rgba(240,180,200,0.95) 8px);
   transform: rotate(3deg); left: auto; right: 12px;
 }
-.summary-stat:hover {
-  transform: rotate(0deg) translateY(-4px) scale(1.02) !important;
-  box-shadow: 6px 8px 0 rgba(29,28,19,0.30), 0 8px 22px rgba(29,28,19,0.11);
+
+/* "Peek" hint at bottom of front */
+.flip-front::after {
+  content: 'hover to reveal ↻';
+  position: absolute; bottom: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem; letter-spacing: 0.06em;
+  color: var(--outline); opacity: 0.7;
+  pointer-events: none;
+  text-transform: uppercase;
 }
-.stat-emoji { font-size: 1.75rem; display: block; margin-bottom: 8px; line-height: 1; }
-.stat-value { font-family: 'Space Mono', monospace; font-size: 1.5rem; color: var(--primary); display: block; font-weight: 700; letter-spacing: -0.03em; }
-.stat-label { font-size: 0.60rem; color: var(--on-surf-var); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Space Mono', monospace; }
+
+/* ── BACK FACE — terracotta / primary warm gradient ── */
+.flip-back {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 55%, var(--terracotta) 100%);
+  border: 1.5px solid rgba(140,74,45,0.35);
+  box-shadow: 5px 6px 0 rgba(29,28,19,0.35), 0 4px 18px rgba(140,74,45,0.22);
+  transform: rotateY(180deg);
+  /* subtle inner sheen */
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 55%, var(--terracotta) 100%),
+    linear-gradient(160deg, rgba(255,255,255,0.12) 0%, transparent 50%);
+}
+
+/* Text on the back */
+.flip-back .stat-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-shadow: 1px 2px 0 rgba(29,28,19,0.25);
+  display: block;
+}
+.flip-back .stat-label {
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.78);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Space Mono', monospace;
+}
+
+/* Front-face text helpers */
+.stat-emoji { font-size: 2rem; display: block; margin-bottom: 6px; line-height: 1; }
+.stat-label  { font-size: 0.60rem; color: var(--on-surf-var); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Space Mono', monospace; }
+.stat-value  { font-family: 'Space Mono', monospace; font-size: 1.5rem; color: var(--primary); display: block; font-weight: 700; letter-spacing: -0.03em; }
 
 /* EXPENSES */
 .expense-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }

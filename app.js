@@ -160,10 +160,10 @@ function renderTripPage() {
   var totalSpent = trip.expenses.reduce(function(s, e) { return s + e.amount; }, 0);
   var perPerson = trip.travelers.length > 0 ? totalSpent / trip.travelers.length : 0;
   document.getElementById('trip-summary-grid').innerHTML =
-    '<div class="summary-stat" style="transform:rotate(-1deg)"><span class="stat-emoji">💰</span><span class="stat-value">&#8377;' + totalSpent.toFixed(2) + '</span><div class="stat-label">Total Spent</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(1deg)"><span class="stat-emoji">🧑</span><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(-0.5deg)"><span class="stat-emoji">👥</span><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(0.8deg)"><span class="stat-emoji">🧾</span><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div>';
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">💰</span><div class="stat-label">Total Spent</div></div><div class="flip-back"><span class="stat-value">&#8377;' + totalSpent.toFixed(2) + '</span><div class="stat-label">Total Spent</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧑</span><div class="stat-label">Per Person</div></div><div class="flip-back"><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">👥</span><div class="stat-label">Travelers</div></div><div class="flip-back"><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧾</span><div class="stat-label">Expenses</div></div><div class="flip-back"><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div></div></div>';
   document.getElementById('trip-meta-bar').innerHTML = trip.travelers.map(function(t) {
     return '<span class="chip"><span class="material-symbols-outlined" style="font-size:0.8rem;">person</span>' + t + '</span>';
   }).join('');
@@ -201,10 +201,10 @@ function updateSummaryStats() {
   var perPerson = trip.travelers.length > 0 ? totalSpent / trip.travelers.length : 0;
   var sg = document.getElementById('trip-summary-grid');
   if (sg) sg.innerHTML =
-    '<div class="summary-stat" style="transform:rotate(-1deg)"><span class="stat-emoji">💰</span><span class="stat-value">&#8377;' + totalSpent.toFixed(2) + '</span><div class="stat-label">Total Spent</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(1deg)"><span class="stat-emoji">🧑</span><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(-0.5deg)"><span class="stat-emoji">👥</span><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div>' +
-    '<div class="summary-stat" style="transform:rotate(0.8deg)"><span class="stat-emoji">🧾</span><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div>';
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">💰</span><div class="stat-label">Total Spent</div></div><div class="flip-back"><span class="stat-value">&#8377;' + totalSpent.toFixed(2) + '</span><div class="stat-label">Total Spent</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧑</span><div class="stat-label">Per Person</div></div><div class="flip-back"><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">👥</span><div class="stat-label">Travelers</div></div><div class="flip-back"><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div></div></div>' +
+    '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧾</span><div class="stat-label">Expenses</div></div><div class="flip-back"><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div></div></div>';
 }
 
 function renderExpenses() {
