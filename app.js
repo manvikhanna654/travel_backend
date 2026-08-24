@@ -2,9 +2,19 @@ var trips = JSON.parse(localStorage.getItem('ts_trips') || '[]');
 var currentTripId = null;
 var currentTravelers = [];
 var expenseChart = null;
+var guestName = null; // Name of a user who joined via shared link
 
-var CAT_ICONS = { food: '🍜', stay: '🏠', transport: '🚆', activities: '🎠', misc: '📌' };
-var CAT_COLORS = { food: '#C97B5A', stay: '#8A9A5B', transport: '#5B7C99', activities: '#D4A24C', misc: '#86736c' };
+// ─── JSONBIN CLOUD CONFIG ─────────────────────────────────────────────────────
+// Using JSONBin.io (free public bin) as the shared cloud REST API.
+// Each trip is stored as an individual bin. The bin ID IS the trip's cloud key.
+// Students: Sign up at https://jsonbin.io/ and replace JSONBIN_KEY with your own.
+var JSONBIN_KEY = '$2a$10$FXvzpLGvjKhviBUVo.gD8.udCuW6IfJQWGALy.OERLaXztwbjCcKS';
+var JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
+
+
+var CAT_ICONS = { food: '🍟', stay: '🏠', transport: '🚗', activities: '🎡', misc: '📌' };
+var CAT_NAMES = { food: 'Food', stay: 'Stay', transport: 'Transport', activities: 'Activities', misc: 'Misc' };
+var CAT_COLORS = { food: '#C85A44', stay: '#6B8E4E', transport: '#4A7B9D', activities: '#D4A038', misc: '#8B5D7A' };
 var CARD_ROTS = ['card-r1', 'card-r2', 'card-r3', 'card-r4'];
 var WASHI = ['washi-green', 'washi-blue', 'washi-orange'];
 var DEST_PHOTOS = {
@@ -41,6 +51,7 @@ function switchTab(tab) {
   if (tab === 'expenses') renderExpenses();
   if (tab === 'itinerary') renderItinerary();
   if (tab === 'packing') renderPackingList();
+  if (tab === 'polls') renderPolls();
   if (tab === 'debts') renderDebts();
 }
 
@@ -97,7 +108,9 @@ function createTrip() {
   if (currentTravelers.length === 0) { showToast('Add at least one traveler!'); return; }
   var trip = { id: Date.now().toString(), name: name, dest: dest, start: start, end: end, budget: budget, travelers: currentTravelers.slice(), expenses: [], itinerary: [], packing: [], createdAt: new Date().toISOString() };
   trips.unshift(trip); saveTrips(); closeModal('modal-new-trip');
-  showToast('"' + name + '" created! ✈️'); currentTripId = trip.id; showPage('trip');
+  showToast('"' + name + '" created! ✈️'); currentTripId = trip.id;
+  saveTripToCloud(trip); // async: upload new trip to cloud for sharing
+  showPage('trip');
 }
 
 function renderDashboard() {
@@ -192,6 +205,7 @@ function addExpense() {
   trip.expenses.push({ id: Date.now().toString(), desc: desc, amount: amount, category: category, paidBy: paidBy, splitBetween: splitBetween, settled: false, createdAt: new Date().toISOString() });
   saveTrips(); closeModal('modal-add-expense');
   document.getElementById('exp-desc-input').value = ''; document.getElementById('exp-amount-input').value = '';
+  updateTripInCloud(trip); // async: sync new expense to cloud
   renderExpenses(); updateSummaryStats(); showToast('Expense added! 🧾');
 }
 
@@ -240,16 +254,108 @@ function renderExpenses() {
 
 function renderExpenseChart(trip) {
   var cats = ['food', 'stay', 'transport', 'activities', 'misc'];
-  var totals = cats.map(function(c) { return trip.expenses.filter(function(e) { return e.category === c; }).reduce(function(s, e) { return s + e.amount; }, 0); });
-  var ctx = document.getElementById('expense-chart');
-  if (!ctx) return;
+  var totals = cats.map(function(c) {
+    return trip.expenses.filter(function(e) { return e.category === c; }).reduce(function(s, e) { return s + e.amount; }, 0);
+  });
+  var totalSpent = totals.reduce(function(a, b) { return a + b; }, 0);
+
+  var wrap = document.getElementById('chart-wrap-container');
+  var centerVal = document.getElementById('chart-center-val');
+  var centerLbl = document.querySelector('.chart-center-sticker .center-label');
+  var totalValEl = document.getElementById('legend-total-val');
+
   if (expenseChart) { expenseChart.destroy(); expenseChart = null; }
+
   var hasData = totals.some(function(v) { return v > 0; });
-  if (!hasData) { ctx.parentElement.innerHTML = '<p style="text-align:center;color:var(--on-surf-var);font-size:0.82rem;padding:20px;">Add expenses to see breakdown</p>'; return; }
-  expenseChart = new Chart(ctx, { type: 'doughnut', data: { labels: cats.map(function(c) { return CAT_ICONS[c] + ' ' + c; }), datasets: [{ data: totals, backgroundColor: cats.map(function(c) { return CAT_COLORS[c]; }), borderWidth: 2, borderColor: '#F7F1E3' }] }, options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { font: { family: 'Space Mono', size: 10 }, padding: 8 } } } } });
+
+  // Update center sticker & legend total
+  if (centerVal) centerVal.textContent = '\u20b9' + totalSpent.toLocaleString();
+  if (centerLbl) centerLbl.textContent = 'total';
+  if (totalValEl) totalValEl.textContent = '\u20b9' + totalSpent.toLocaleString();
+
+  // If no data, use dummy equal proportions for preview donut chart
+  var chartData = hasData ? totals : [1, 1, 1, 1, 1];
+  var chartColors = cats.map(function(c) { return CAT_COLORS[c]; });
+
+  var ctx = document.getElementById('expense-chart');
+  if (ctx) {
+    expenseChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: cats.map(function(c) { return CAT_NAMES[c] || c; }),
+        datasets: [{
+          data: chartData,
+          backgroundColor: chartColors,
+          borderWidth: 3,
+          borderColor: '#FAF5E9',
+          hoverBorderColor: '#2D231F',
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        cutout: '68%',
+        rotation: -90,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: hasData,
+            backgroundColor: '#2D231F',
+            titleFont: { family: 'Caveat', size: 14 },
+            bodyFont: { family: 'Caveat', size: 13 },
+            padding: 10,
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                var idx = context.dataIndex;
+                var val = totals[idx];
+                var pct = totalSpent > 0 ? ((val / totalSpent) * 100).toFixed(0) : '0';
+                return '\u20b9' + val.toFixed(0) + ' (' + pct + '%)';
+              }
+            }
+          }
+        },
+        onHover: function(event, elements) {
+          if (elements && elements.length > 0 && hasData) {
+            var index = elements[0].index;
+            var cat = cats[index];
+            var val = totals[index];
+            if (centerVal) centerVal.textContent = '\u20b9' + val.toFixed(0);
+            if (centerLbl) centerLbl.textContent = (CAT_NAMES[cat] || cat).toLowerCase();
+          } else {
+            if (centerVal) centerVal.textContent = '\u20b9' + totalSpent.toLocaleString();
+            if (centerLbl) centerLbl.textContent = 'total';
+          }
+        }
+      }
+    });
+  }
+
+  // Render legend list with all 5 categories
   document.getElementById('category-summary').innerHTML = cats.map(function(c, i) {
-    return totals[i] > 0 ? '<div style="display:flex;justify-content:space-between;font-size:0.75rem;padding:3px 0;border-bottom:1px dashed var(--outline-variant);"><span>' + CAT_ICONS[c] + ' ' + c + '</span><span style="font-family:Space Mono,monospace;font-weight:700;">\u20b9' + totals[i].toFixed(2) + '</span></div>' : '';
+    var val = totals[i];
+    var pct = totalSpent > 0 ? ((val / totalSpent) * 100).toFixed(0) : '0';
+    return '<div class="legend-row" onmouseenter="highlightChartSlice(' + i + ')" onmouseleave="highlightChartSlice(-1)">' +
+      '<div class="legend-left">' +
+        '<span class="legend-swatch" style="background:' + CAT_COLORS[c] + ';"></span>' +
+        '<span>' + CAT_ICONS[c] + ' ' + (CAT_NAMES[c] || c) + '</span>' +
+      '</div>' +
+      '<div class="legend-dots"></div>' +
+      '<div class="legend-right">' +
+        '<span class="legend-amount">\u20b9' + (val > 0 ? val.toFixed(0) : '0') + '</span>' +
+        '<span class="legend-pct">' + pct + '%</span>' +
+      '</div>' +
+    '</div>';
   }).join('');
+}
+
+function highlightChartSlice(index) {
+  if (!expenseChart) return;
+  if (index >= 0) {
+    expenseChart.setActiveElements([{ datasetIndex: 0, index: index }]);
+  } else {
+    expenseChart.setActiveElements([]);
+  }
+  expenseChart.update();
 }
 
 function toggleSettled(expId) { var trip = getTrip(); if (!trip) return; var exp = trip.expenses.find(function(e) { return e.id === expId; }); if (exp) { exp.settled = !exp.settled; saveTrips(); renderExpenses(); updateSummaryStats(); } }
@@ -280,29 +386,215 @@ function renderDebts() {
   var trip = getTrip(); if (!trip) return;
   var balances = calculateDebts(trip); var tx = simplifyDebts(balances);
   var dlist = document.getElementById('debts-list');
-  dlist.innerHTML = tx.length === 0 ? '<div style="text-align:center;padding:24px;font-family:Caveat,cursive;font-size:1.6rem;color:var(--secondary);">🎉 All settled up!</div>' :
+  dlist.innerHTML = tx.length === 0 ? '<div style="text-align:center;padding:24px;font-family:Caveat,cursive;font-size:1.6rem;color:var(--secondary);">&#127881; All settled up!</div>' :
     tx.map(function(t) { return '<div class="debt-card"><span>' + t.from + '</span><span style="color:var(--primary);font-weight:700;">\u2192 \u20b9' + t.amount.toFixed(2) + ' \u2192</span><span>' + t.to + '</span><span class="badge badge-owe">owes</span></div>'; }).join('');
   document.getElementById('balances-list').innerHTML = Object.entries(balances).map(function(e) {
     var p = e[0], b = e[1];
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--outline-variant);margin-bottom:6px;box-shadow:1px 1px 0 rgba(29,28,19,0.1);">' +
       '<span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">person</span> ' + p + '</span>' +
-      '<span style="font-family:Space Mono,monospace;font-weight:700;color:' + (b >= 0 ? 'var(--secondary)' : 'var(--error)') + ';">\u20b9' + Math.abs(b).toFixed(2) + '</span></div>';
+      '<span style="font-family:Space Mono,monospace;font-weight:700;color:' + (b >= 0 ? 'var(--secondary)' : 'var(--error)') + ';">' + (b >= 0 ? '+' : '') + '\u20b9' + Math.abs(b).toFixed(2) + '</span></div>';
   }).join('');
 }
+
+
+// ─── POLLS SYSTEM ─────────────────────────────────────────────────────────
+
+var POLL_EMOJIS = ['🍕','🍜','🥗','🏖️','🎡','🎭','🗺️','🚂','🌮','☕','🏕️','🍦','🎶','🍹','⛵'];
+
+function addPollOptionRow() {
+  var wrap = document.getElementById('poll-options-wrap');
+  var count = wrap.querySelectorAll('.poll-option-row').length + 1;
+  var defaultEmoji = POLL_EMOJIS[(count - 1) % POLL_EMOJIS.length];
+  var row = document.createElement('div');
+  row.className = 'poll-option-row';
+  row.innerHTML = '<input class="journal-input poll-opt-emoji" type="text" value="' + defaultEmoji + '" maxlength="2" title="Emoji" />' +
+    '<input class="journal-input poll-option-input" type="text" placeholder="Option title (e.g. Spot ' + count + ')" />' +
+    '<input class="journal-input poll-option-sub" type="text" placeholder="Short note (e.g. Sunset view)" />' +
+    '<button class="poll-opt-remove" onclick="removePollOptionRow(this)">\u2715</button>';
+  wrap.appendChild(row);
+}
+function removePollOptionRow(btn) {
+  var wrap = document.getElementById('poll-options-wrap');
+  if (wrap.querySelectorAll('.poll-option-row').length <= 2) { showToast('Need at least 2 options!'); return; }
+  btn.parentElement.remove();
+}
+
+function createPoll() {
+  var trip = getTrip(); if (!trip) return;
+  var question = document.getElementById('poll-question-input').value.trim();
+  if (!question) { showToast('Enter a poll question!'); return; }
+  var rows = document.querySelectorAll('#poll-options-wrap .poll-option-row');
+  var options = Array.from(rows).map(function(row, i) {
+    var emojiInput = row.querySelector('.poll-opt-emoji');
+    var titleInput = row.querySelector('.poll-option-input');
+    var subInput = row.querySelector('.poll-option-sub');
+    var emoji = emojiInput ? emojiInput.value.trim() : POLL_EMOJIS[i % POLL_EMOJIS.length];
+    var text = titleInput ? titleInput.value.trim() : '';
+    var sub = subInput ? subInput.value.trim() : '';
+    return { id: i.toString(), text: text, sub: sub, emoji: emoji || POLL_EMOJIS[i % POLL_EMOJIS.length], votes: [] };
+  }).filter(function(opt) { return opt.text !== ''; });
+
+  if (options.length < 2) { showToast('Add at least 2 options!'); return; }
+  if (!trip.polls) trip.polls = [];
+  var poll = {
+    id: Date.now().toString(),
+    question: question,
+    createdBy: guestName || (trip.travelers[0] || 'You'),
+    createdAt: new Date().toISOString(),
+    options: options
+  };
+  trip.polls.unshift(poll);
+  saveTrips();
+  updateTripInCloud(trip);
+  closeModal('modal-create-poll');
+  // Reset modal fields
+  document.getElementById('poll-question-input').value = '';
+  renderPolls();
+  showToast('Poll launched! Time to vote ✌️');
+}
+
+function castVote(pollId, optionId) {
+  var trip = getTrip(); if (!trip || !trip.polls) return;
+  var voterName = guestName || (trip.travelers[0] || 'Traveler');
+  var poll = trip.polls.find(function(p) { return p.id === pollId; });
+  if (!poll) return;
+  // Remove previous vote by this person across all options (one vote per person)
+  poll.options.forEach(function(opt) {
+    opt.votes = opt.votes.filter(function(v) { return v !== voterName; });
+  });
+  // Add vote to chosen option
+  var chosen = poll.options.find(function(o) { return o.id === optionId; });
+  if (chosen) chosen.votes.push(voterName);
+  saveTrips();
+  updateTripInCloud(trip);
+  renderPolls();
+  showToast('Vote cast! ✌️');
+}
+
+function deletePoll(pollId) {
+  var trip = getTrip(); if (!trip || !trip.polls) return;
+  if (!confirm('Delete this poll?')) return;
+  trip.polls = trip.polls.filter(function(p) { return p.id !== pollId; });
+  saveTrips();
+  updateTripInCloud(trip);
+  renderPolls();
+  showToast('Poll removed.');
+}
+
+function renderPolls() {
+  var trip = getTrip(); if (!trip) return;
+  
+  // Render trip header badges
+  var badgesBar = document.getElementById('polls-trip-badges');
+  if (badgesBar) {
+    var dateStr = trip.start ? new Date(trip.start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Summer 2025';
+    var dayCount = (trip.itinerary && trip.itinerary.length > 0) ? (trip.itinerary.length + ' Days') : 'Trip Diary';
+    badgesBar.innerHTML =
+      '<span class="poll-trip-tag">📍 ' + trip.dest + '</span>' +
+      '<span class="poll-trip-tag">📖 ' + dayCount + '</span>' +
+      '<span class="poll-trip-tag">👥 ' + trip.travelers.length + ' crew</span>' +
+      '<span class="poll-trip-tag">☀️ ' + dateStr + '</span>';
+  }
+
+  var container = document.getElementById('polls-list');
+  if (!trip.polls || trip.polls.length === 0) {
+    container.innerHTML = 
+      '<div class="polls-empty">' +
+        '<span style="font-size:3.5rem;">🗳️</span>' +
+        '<p style="font-family:\'Caveat\',cursive;font-size:1.8rem;color:var(--primary);margin-top:8px;">No polls yet!</p>' +
+        '<p style="font-size:0.9rem;color:var(--on-surf-var);">Create your first poll and let the group decide together!</p>' +
+        '<button class="btn btn-primary" onclick="openModal(\'modal-create-poll\')" style="margin-top:14px;box-shadow:2px 3px 0 rgba(29,28,19,0.3);">+ Launch First Poll</button>' +
+      '</div>';
+    return;
+  }
+
+  var myName = guestName || (trip.travelers[0] || '');
+  var WASHI_COLORS = ['washi-green','washi-blue','washi-orange'];
+
+  container.innerHTML = trip.polls.map(function(poll, pi) {
+    var totalVotes = poll.options.reduce(function(s, o) { return s + o.votes.length; }, 0);
+    var myVote = '';
+    poll.options.forEach(function(o) { if (o.votes.indexOf(myName) !== -1) myVote = o.id; });
+    var winnerVotes = Math.max.apply(null, poll.options.map(function(o) { return o.votes.length; }));
+
+    var optionsHtml = poll.options.map(function(opt, oi) {
+      var pct = totalVotes > 0 ? Math.round((opt.votes.length / totalVotes) * 100) : 0;
+      var isMyVote = myVote === opt.id;
+      var isWinner = totalVotes > 0 && opt.votes.length === winnerVotes && winnerVotes > 0;
+      var rot = oi % 2 === 0 ? '-0.8' : '0.6';
+      var voterChips = opt.votes.length > 0 ? 
+        '<div class="poll-voter-chips">' + opt.votes.map(function(v) { return '<span class="poll-voter-chip" title="' + v + '">' + v + '</span>'; }).join('') + '</div>' : '';
+
+      return '<div class="poll-option-card' + (isMyVote ? ' poll-voted' : '') + (isWinner ? ' poll-winner' : '') + '" style="transform:rotate(' + rot + 'deg);">' +
+        (isMyVote ? '<div class="poll-stamp">VOTED ✋</div>' : '') +
+        (isWinner && totalVotes > 0 ? '<div class="poll-winner-ribbon">🏆 Leading</div>' : '') +
+        '<div class="poll-option-emoji-box">' + opt.emoji + '</div>' +
+        '<div class="poll-option-content">' +
+          '<h5 class="poll-option-text">' + opt.text + '</h5>' +
+          (opt.sub ? '<p class="poll-option-sub-desc">' + opt.sub + '</p>' : '') +
+          (totalVotes > 0 ? 
+            '<div class="poll-results-row">' +
+              '<div class="poll-bar-bg"><div class="poll-bar-fill' + (isWinner ? ' winner' : '') + '" style="width:' + pct + '%;"></div></div>' +
+              '<span class="poll-pct">' + pct + '% (' + opt.votes.length + ')</span>' +
+            '</div>' : '') +
+          voterChips +
+          '<button class="poll-vote-btn' + (isMyVote ? ' voted' : '') + '" onclick="castVote(\'' + poll.id + '\',\'' + opt.id + '\')">' +
+            (isMyVote ? '✓ Voted' : 'Vote ✋') +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var timeAgo = (function(iso) { 
+      var diff = Math.round((Date.now() - new Date(iso)) / 60000); 
+      if (diff < 1) return 'just now';
+      if (diff < 60) return diff + 'm ago'; 
+      if (diff < 1440) return Math.round(diff/60) + 'h ago'; 
+      return Math.round(diff/1440) + 'd ago'; 
+    })(poll.createdAt);
+
+    return '<div class="poll-card" style="transform:rotate(' + (pi % 2 === 0 ? '-0.5' : '0.4') + 'deg);">' +
+      '<div class="washi-tape ' + WASHI_COLORS[pi % 3] + ' poll-washi"></div>' +
+      '<div class="poll-card-header">' +
+        '<div style="flex:1;">' +
+          '<div class="poll-question-wrap">' +
+            '<h4 class="poll-question">' + poll.question + '</h4>' +
+            '<svg class="poll-wavy-underline" viewBox="0 0 200 10" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+              '<path d="M2 5C15 2 28 8 41 5C54 2 67 8 80 5C93 2 106 8 119 5C132 2 145 8 158 5C171 2 184 8 198 5" stroke="#C85A44" stroke-width="2.5" stroke-linecap="round" />' +
+            '</svg>' +
+          '</div>' +
+          '<div class="poll-meta-row">' +
+            '<span class="poll-author">by ' + poll.createdBy + ' · ' + timeAgo + '</span>' +
+            '<span class="poll-status-pill">' + (totalVotes > 0 ? '🗳️ ' + totalVotes + ' vote' + (totalVotes !== 1 ? 's' : '') : '⏱️ Open to votes') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="btn-icon btn-danger poll-del-btn" onclick="deletePoll(\'' + poll.id + '\')" title="Delete Poll">' +
+          '<span class="material-symbols-outlined" style="font-size:0.95rem;">delete</span>' +
+        '</button>' +
+      '</div>' +
+      '<div class="poll-options-grid">' + optionsHtml + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 
 function addDay() {
   var trip = getTrip(); if (!trip) return;
   var label = document.getElementById('day-label-input').value.trim();
   if (!label) { showToast('Enter a day label!'); return; }
   trip.itinerary.push({ id: Date.now().toString(), label: label, activities: [] });
-  saveTrips(); closeModal('modal-add-day'); document.getElementById('day-label-input').value = ''; renderItinerary(); showToast('Day added!');
+  saveTrips(); closeModal('modal-add-day'); document.getElementById('day-label-input').value = '';
+  updateTripInCloud(trip); // async: sync new day to cloud
+  renderItinerary(); showToast('Day added!');
 }
 function addActivity(dayId) {
   var trip = getTrip(); if (!trip) return;
   var input = document.getElementById('act-input-' + dayId); var text = input.value.trim(); if (!text) return;
   var day = trip.itinerary.find(function(d) { return d.id === dayId; }); if (!day) return;
   day.activities.push({ id: Date.now().toString(), text: text, upvotes: 0, downvotes: 0, confirmed: false });
-  saveTrips(); input.value = ''; renderItinerary(); showToast('Activity added!');
+  saveTrips(); input.value = '';
+  updateTripInCloud(trip); // async: sync new activity to cloud
+  renderItinerary(); showToast('Activity added!');
 }
 function voteActivity(dayId, actId, type) {
   var trip = getTrip(); if (!trip) return;
@@ -395,7 +687,9 @@ function addPackItem() {
   var trip = getTrip(); if (!trip) return;
   var input = document.getElementById('pack-input'); var text = input.value.trim(); if (!text) return;
   trip.packing.push({ id: Date.now().toString(), text: text, checked: false });
-  saveTrips(); input.value = ''; renderPackingList(); showToast('Item added!');
+  saveTrips(); input.value = '';
+  updateTripInCloud(trip); // async: sync new packing item to cloud
+  renderPackingList(); showToast('Item added!');
 }
 function togglePack(itemId) { var trip = getTrip(); if (!trip) return; var item = trip.packing.find(function(p) { return p.id === itemId; }); if (item) { item.checked = !item.checked; saveTrips(); renderPackingList(); } }
 function deletePackItem(itemId) { var trip = getTrip(); if (!trip) return; trip.packing = trip.packing.filter(function(p) { return p.id !== itemId; }); saveTrips(); renderPackingList(); }
@@ -417,4 +711,204 @@ function fmtDate(d) { if (!d) return '--'; var dt = new Date(d + 'T00:00:00'); r
 function getCountdown(startDate) { if (!startDate) return null; var now = new Date(); now.setHours(0, 0, 0, 0); var start = new Date(startDate + 'T00:00:00'); return Math.round((start - now) / (1000 * 60 * 60 * 24)); }
 function getDestPhoto(dest) { var key = (dest || '').toLowerCase().split(',')[0].trim(); return DEST_PHOTOS[key] || DEST_PHOTOS['default']; }
 
-renderDashboard();
+// ─── CLOUD SYNC HELPERS ───────────────────────────────────────────────────────
+
+function setSyncBadge(state) {
+  var badge = document.getElementById('sync-badge');
+  if (!badge) return;
+  if (state === 'syncing') { badge.style.display = 'inline-flex'; badge.textContent = '🔄 Syncing...'; badge.className = 'sync-badge syncing'; }
+  else if (state === 'synced') { badge.style.display = 'inline-flex'; badge.textContent = '☁️ Synced'; badge.className = 'sync-badge synced'; }
+  else { badge.style.display = 'none'; }
+}
+
+function showCloudStatus(msg) {
+  var el = document.getElementById('share-cloud-status');
+  if (el) el.textContent = msg;
+}
+
+// ─── CLOUD API FUNCTIONS (Async/Await + Fetch API) ────────────────────────────
+
+// POST: Save a brand-new trip to the cloud and store the bin ID on the trip object
+async function saveTripToCloud(trip) {
+  setSyncBadge('syncing');
+  try {
+    var res = await fetch(JSONBIN_BASE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Name': trip.name,
+        'X-Collection-Id': ''
+      },
+      body: JSON.stringify(trip)
+    });
+    if (!res.ok) throw new Error('Cloud save failed: ' + res.status);
+    var data = await res.json();
+    // Store the JSONBin bin ID on the trip so we can PUT updates later
+    trip.binId = data.metadata.id;
+    saveTrips();
+    setSyncBadge('synced');
+    return trip.binId;
+  } catch (err) {
+    setSyncBadge(null);
+    console.warn('Cloud save error (using local only):', err.message);
+    return null;
+  }
+}
+
+// PUT: Update an existing cloud bin with the latest trip state
+async function updateTripInCloud(trip) {
+  if (!trip || !trip.binId) return; // no cloud ID = never synced, skip
+  setSyncBadge('syncing');
+  try {
+    var res = await fetch(JSONBIN_BASE + '/' + trip.binId, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(trip)
+    });
+    if (!res.ok) throw new Error('Cloud update failed: ' + res.status);
+    await res.json();
+    setSyncBadge('synced');
+  } catch (err) {
+    setSyncBadge(null);
+    console.warn('Cloud update error (saved locally):', err.message);
+  }
+}
+
+// GET: Fetch a shared trip by its bin ID (called when someone opens a shared link)
+async function fetchTripFromCloud(binId) {
+  try {
+    var res = await fetch(JSONBIN_BASE + '/' + binId + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    if (!res.ok) throw new Error('Not found: ' + res.status);
+    var data = await res.json();
+    return data.record; // The actual trip object
+  } catch (err) {
+    console.warn('Could not fetch shared trip:', err.message);
+    return null;
+  }
+}
+
+// ─── URL PARAM: Detect shared link and load trip ──────────────────────────────
+
+async function initApp() {
+  // ES6: URLSearchParams to read query string
+  var urlParams = new URLSearchParams(window.location.search);
+  var sharedBinId = urlParams.get('tripId'); // e.g. ?tripId=abc123
+
+  if (sharedBinId) {
+    // User arrived via a shared link — fetch from cloud
+    showToast('Loading shared trip... ☁️');
+    var cloudTrip = await fetchTripFromCloud(sharedBinId);
+    if (cloudTrip) {
+      // Check if we already have this trip locally (avoid duplicates)
+      var existing = trips.find(function(t) { return t.binId === sharedBinId || t.id === cloudTrip.id; });
+      if (!existing) {
+        trips.unshift(cloudTrip);
+        saveTrips();
+      } else {
+        // Overwrite local copy with latest cloud version
+        var idx = trips.indexOf(existing);
+        trips[idx] = cloudTrip;
+        saveTrips();
+      }
+      currentTripId = cloudTrip.id;
+      renderDashboard();
+      showPage('trip');
+      // Show the guest banner so joining user can enter their name
+      document.getElementById('guest-banner').style.display = 'flex';
+      setSyncBadge('synced');
+      showToast('Trip loaded! Add your name to collaborate. ✈️');
+    } else {
+      showToast('Could not load shared trip. Check the link or your connection.');
+      renderDashboard();
+    }
+  } else {
+    // Normal page load
+    renderDashboard();
+  }
+}
+
+// ─── SHARE MODAL FUNCTIONS ────────────────────────────────────────────────────
+
+async function openShareModal() {
+  var trip = getTrip(); if (!trip) return;
+  openModal('modal-share-trip');
+  var linkInput = document.getElementById('share-link-input');
+  var statusEl = document.getElementById('share-cloud-status');
+
+  if (trip.binId) {
+    // Already synced — just show the link
+    var shareUrl = window.location.origin + window.location.pathname + '?tripId=' + trip.binId;
+    linkInput.value = shareUrl;
+    statusEl.textContent = '✅ Trip is live on cloud. Link is ready to share!';
+    statusEl.style.color = 'var(--secondary)';
+  } else {
+    // First time sharing — save to cloud first
+    linkInput.value = 'Uploading to cloud...';
+    statusEl.textContent = '⏳ Saving trip to cloud...';
+    statusEl.style.color = 'var(--on-surface-variant)';
+    var binId = await saveTripToCloud(trip);
+    if (binId) {
+      var shareUrl = window.location.origin + window.location.pathname + '?tripId=' + binId;
+      linkInput.value = shareUrl;
+      statusEl.textContent = '✅ Trip saved to cloud! Link is ready to share.';
+      statusEl.style.color = 'var(--secondary)';
+    } else {
+      linkInput.value = '';
+      statusEl.textContent = '⚠️ Cloud save failed. Check your JSONBin API key in app.js.';
+      statusEl.style.color = 'var(--error)';
+    }
+  }
+}
+
+function copyShareLink() {
+  var linkInput = document.getElementById('share-link-input');
+  if (!linkInput.value || linkInput.value === 'Uploading to cloud...') { showToast('Please wait, link is being generated...'); return; }
+  // Use Clipboard API (modern browser standard)
+  navigator.clipboard.writeText(linkInput.value).then(function() {
+    var btn = document.getElementById('copy-btn');
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">check</span> Copied!';
+    btn.style.background = 'var(--secondary)';
+    showToast('Link copied to clipboard! 🔗');
+    setTimeout(function() {
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">content_copy</span> Copy';
+      btn.style.background = '';
+    }, 2500);
+  }).catch(function() {
+    // Fallback for older browsers
+    linkInput.select();
+    document.execCommand('copy');
+    showToast('Link copied! 🔗');
+  });
+}
+
+// ─── GUEST NAME HANDLING ──────────────────────────────────────────────────────
+
+function setGuestName() {
+  var input = document.getElementById('guest-name-input');
+  var name = input.value.trim();
+  if (!name) { showToast('Please enter your name!'); return; }
+  guestName = name;
+  var trip = getTrip();
+  // Add guest as a traveler if not already in the list
+  if (trip && trip.travelers.indexOf(name) === -1) {
+    trip.travelers.push(name);
+    saveTrips();
+    updateTripInCloud(trip);
+    renderTripPage(); // Re-render to show new traveler chip
+  }
+  // Show confirmation, hide input
+  document.getElementById('guest-name-display').style.display = 'block';
+  document.getElementById('guest-name-display').textContent = '👋 Welcome, ' + name + '! You can now add expenses and items.';
+  input.style.display = 'none';
+  input.nextElementSibling.style.display = 'none'; // hide Join button
+  showToast('Welcome ' + name + '! Happy travels! ✈️');
+}
+
+initApp();
+
