@@ -160,10 +160,37 @@ function deleteTrip(id) {
   saveTrips(); renderDashboard(); showToast('Trip deleted.');
 }
 
+function initials(name) {
+  return name.split(/\s+/).map(function(part) { return part.charAt(0); }).join('').slice(0, 2).toUpperCase();
+}
+
+function renderSummaryCards(trip) {
+  var totalSpent = trip.expenses.reduce(function(s, e) { return s + e.amount; }, 0);
+  var perPerson = trip.travelers.length > 0 ? totalSpent / trip.travelers.length : 0;
+  var amounts = trip.expenses.slice(-6).map(function(e) { return e.amount; });
+  var maxAmount = Math.max.apply(Math, amounts.concat([1]));
+  var bars = amounts.length ? amounts.map(function(amount) { return '<span style="height:' + Math.max(4, Math.round((amount / maxAmount) * 22)) + 'px"></span>'; }).join('') : '<span style="height:5px"></span><span style="height:9px"></span><span style="height:7px"></span>';
+  var ringPct = trip.budget > 0 ? Math.min((totalSpent / trip.budget) * 100, 100) : (totalSpent > 0 ? 65 : 0);
+  var circumference = 2 * Math.PI * 18;
+  var ringOffset = circumference - (ringPct / 100) * circumference;
+  var avatars = trip.travelers.slice(0, 4).map(function(name) { return '<span class="avatar-dot" title="' + name + '">' + initials(name) + '</span>'; }).join('');
+  if (trip.travelers.length > 4) avatars += '<span class="avatar-dot avatar-more">+' + (trip.travelers.length - 4) + '</span>';
+  var activityDots = trip.expenses.slice(-4).map(function(exp) { return '<span class="activity-dot" title="' + exp.desc + '"></span>'; }).join('');
+  if (!activityDots) activityDots = '<span class="activity-dot is-muted"></span><span class="activity-dot is-muted"></span><span class="activity-dot is-muted"></span>';
+  var money = function(value) { return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); };
+  return '<div class="summary-stat summary-stat-spent"><div class="stat-card-inner"><div class="stat-card-top"><span class="stat-icon"><span class="material-symbols-outlined">payments</span></span><span class="stat-kicker">This journey</span></div><span class="stat-value">&#8377;' + money(totalSpent) + '</span><div class="stat-label">Total Spent</div><div class="spark-bars" aria-label="Recent spend trend">' + bars + '</div></div></div>' +
+    '<div class="summary-stat summary-stat-person"><div class="stat-card-inner"><div class="stat-card-top"><span class="stat-icon"><span class="material-symbols-outlined">person</span></span><span class="stat-kicker">Fair share</span></div><span class="stat-value">&#8377;' + money(perPerson) + '</span><div class="stat-label">Per Person</div><div class="progress-ring" aria-label="Budget share"><svg viewBox="0 0 44 44"><circle class="ring-track" cx="22" cy="22" r="18"></circle><circle class="ring-value" cx="22" cy="22" r="18" style="stroke-dasharray:' + circumference + ';stroke-dashoffset:' + ringOffset + '"></circle></svg><span>' + Math.round(ringPct) + '%</span></div></div></div>' +
+    '<div class="summary-stat summary-stat-travelers"><div class="stat-card-inner"><div class="stat-card-top"><span class="stat-icon"><span class="material-symbols-outlined">group</span></span><span class="stat-kicker">The crew</span></div><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div><div class="avatar-stack" aria-label="Travelers">' + avatars + '</div></div></div>' +
+    '<div class="summary-stat summary-stat-expenses"><div class="stat-card-inner"><div class="stat-card-top"><span class="stat-icon"><span class="material-symbols-outlined">receipt_long</span></span><span class="stat-kicker">Logged so far</span></div><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div><div class="activity-dots" aria-label="Recent expenses">' + activityDots + '</div></div></div>';
+}
+
 function renderTripPage() {
   var trip = getTrip(); if (!trip) { showPage('dashboard'); return; }
   document.getElementById('trip-title').textContent = trip.name;
-  document.getElementById('trip-dates-badge').textContent = trip.dest + (trip.start ? ' · ' + fmtDate(trip.start) + ' - ' + fmtDate(trip.end) : '');
+  var sidebarTitle = document.getElementById('sidebar-trip-title');
+  if (sidebarTitle) sidebarTitle.textContent = trip.name;
+  var datesBadge = document.getElementById('trip-dates-badge');
+  if (datesBadge) datesBadge.querySelector('.badge-text').textContent = trip.dest + (trip.start ? ' · ' + fmtDate(trip.start) + ' - ' + fmtDate(trip.end) : '');
   var cd = getCountdown(trip.start);
   var el = document.getElementById('trip-countdown');
   if (cd === null) el.textContent = '📅 No date set';
@@ -177,8 +204,9 @@ function renderTripPage() {
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧑</span><div class="stat-label">Per Person</div></div><div class="flip-back"><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div></div></div>' +
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">👥</span><div class="stat-label">Travelers</div></div><div class="flip-back"><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div></div></div>' +
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧾</span><div class="stat-label">Expenses</div></div><div class="flip-back"><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div></div></div>';
+  document.getElementById('trip-summary-grid').innerHTML = renderSummaryCards(trip);
   document.getElementById('trip-meta-bar').innerHTML = trip.travelers.map(function(t) {
-    return '<span class="chip"><span class="material-symbols-outlined" style="font-size:0.8rem;">person</span>' + t + '</span>';
+    return '<span class="chip chip-crew"><span class="material-symbols-outlined" style="font-size:0.8rem;">person</span>' + t + '</span>';
   }).join('');
   switchTab('expenses');
 }
@@ -219,6 +247,7 @@ function updateSummaryStats() {
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧑</span><div class="stat-label">Per Person</div></div><div class="flip-back"><span class="stat-value">&#8377;' + perPerson.toFixed(2) + '</span><div class="stat-label">Per Person</div></div></div></div>' +
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">👥</span><div class="stat-label">Travelers</div></div><div class="flip-back"><span class="stat-value">' + trip.travelers.length + '</span><div class="stat-label">Travelers</div></div></div></div>' +
     '<div class="summary-stat"><div class="flip-inner"><div class="flip-front"><span class="stat-emoji">🧾</span><div class="stat-label">Expenses</div></div><div class="flip-back"><span class="stat-value">' + trip.expenses.length + '</span><div class="stat-label">Expenses</div></div></div></div>';
+  if (sg) sg.innerHTML = renderSummaryCards(trip);
 }
 
 function renderExpenses() {
@@ -228,7 +257,9 @@ function renderExpenses() {
     document.getElementById('budget-bar-wrap').style.display = 'block';
     var pct = Math.min((total / trip.budget) * 100, 100);
     document.getElementById('budget-bar-fill').style.width = pct + '%';
-    document.getElementById('budget-bar-fill').className = 'budget-bar-fill' + (total > trip.budget ? ' over' : '');
+    var budgetFill = document.getElementById('budget-bar-fill');
+    var budgetState = total > trip.budget ? ' over' : (pct >= 75 ? ' warning' : ' healthy');
+    budgetFill.className = 'budget-bar-fill' + budgetState;
     document.getElementById('budget-label').textContent = '\u20b9' + total.toFixed(0) + ' / \u20b9' + trip.budget;
   }
   var list = document.getElementById('receipts-list');
@@ -400,6 +431,32 @@ function renderDebts() {
 // ─── POLLS SYSTEM ─────────────────────────────────────────────────────────
 
 var POLL_EMOJIS = ['🍕','🍜','🥗','🏖️','🎡','🎭','🗺️','🚂','🌮','☕','🏕️','🍦','🎶','🍹','⛵'];
+var POLL_REACTIONS = [
+  { key: 'like', emoji: '👍', label: 'Like' },
+  { key: 'cheer', emoji: '👏🏻', label: 'Cheer' },
+  { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
+  { key: 'appreciate', emoji: '✨', label: 'Appreciate' },
+  { key: 'smile', emoji: '🙂', label: 'Smile' }
+];
+
+function togglePollReaction(pollId, reactionKey) {
+  var trip = getTrip(); if (!trip || !trip.polls) return;
+  var poll = trip.polls.find(function(p) { return p.id === pollId; });
+  if (!poll) return;
+  if (!poll.reactions) poll.reactions = {};
+  if (!poll.reactions[reactionKey]) poll.reactions[reactionKey] = [];
+
+  var voterName = guestName || (trip.travelers[0] || 'Traveler');
+  var idx = poll.reactions[reactionKey].indexOf(voterName);
+  if (idx !== -1) {
+    poll.reactions[reactionKey].splice(idx, 1);
+  } else {
+    poll.reactions[reactionKey].push(voterName);
+  }
+  saveTrips();
+  updateTripInCloud(trip);
+  renderPolls();
+}
 
 function addPollOptionRow() {
   var wrap = document.getElementById('poll-options-wrap');
@@ -441,7 +498,8 @@ function createPoll() {
     question: question,
     createdBy: guestName || (trip.travelers[0] || 'You'),
     createdAt: new Date().toISOString(),
-    options: options
+    options: options,
+    reactions: {}
   };
   trip.polls.unshift(poll);
   saveTrips();
@@ -495,6 +553,12 @@ function renderPolls() {
       '<span class="poll-trip-tag">👥 ' + trip.travelers.length + ' crew</span>' +
       '<span class="poll-trip-tag">☀️ ' + dateStr + '</span>';
   }
+
+  if (badgesBar) badgesBar.innerHTML =
+      '<span class="poll-trip-tag poll-tag-location"><span class="badge-icon">&#128205;</span><span>' + trip.dest + '</span></span>' +
+      '<span class="poll-trip-tag poll-tag-diary"><span class="badge-icon">&#128214;</span><span>' + dayCount + '</span></span>' +
+      '<span class="poll-trip-tag poll-tag-crew"><span class="badge-icon">&#128101;</span><span>' + trip.travelers.length + ' crew</span></span>' +
+      '<span class="poll-trip-tag poll-tag-date"><span class="badge-icon">&#128197;</span><span>' + dateStr + '</span></span>';
 
   var container = document.getElementById('polls-list');
   if (!trip.polls || trip.polls.length === 0) {
@@ -553,6 +617,34 @@ function renderPolls() {
       return Math.round(diff/1440) + 'd ago'; 
     })(poll.createdAt);
 
+    // Build Reactions Bar
+    var reactionsObj = poll.reactions || {};
+    var reactionBtnsHtml = POLL_REACTIONS.map(function(r) {
+      var voters = reactionsObj[r.key] || [];
+      var isReacted = voters.indexOf(myName) !== -1;
+      var count = voters.length;
+      return '<button class="poll-reaction-btn' + (isReacted ? ' reacted' : '') + '" data-label="' + r.label + '" onclick="togglePollReaction(\'' + poll.id + '\',\'' + r.key + '\')">' +
+        r.emoji + (count > 0 ? '<span class="poll-reaction-count">' + count + '</span>' : '') +
+      '</button>';
+    }).join('');
+
+    var reactionSummaryHtml = Object.keys(reactionsObj).map(function(k) {
+      var voters = reactionsObj[k] || [];
+      if (voters.length === 0) return '';
+      var rObj = POLL_REACTIONS.find(function(pr) { return pr.key === k; });
+      var emoji = rObj ? rObj.emoji : k;
+      return '<span class="poll-reaction-chip" title="' + voters.join(', ') + '">' + emoji + ' ' + voters.length + '</span>';
+    }).join('');
+
+    var reactionsBarHtml = 
+      '<div class="poll-reaction-bar-container">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<span class="poll-reaction-bar-title">Reactions</span>' +
+          '<div class="poll-reaction-bar">' + reactionBtnsHtml + '</div>' +
+        '</div>' +
+        (reactionSummaryHtml ? '<div class="poll-reactions-summary">' + reactionSummaryHtml + '</div>' : '') +
+      '</div>';
+
     return '<div class="poll-card" style="transform:rotate(' + (pi % 2 === 0 ? '-0.5' : '0.4') + 'deg);">' +
       '<div class="washi-tape ' + WASHI_COLORS[pi % 3] + ' poll-washi"></div>' +
       '<div class="poll-card-header">' +
@@ -573,6 +665,7 @@ function renderPolls() {
         '</button>' +
       '</div>' +
       '<div class="poll-options-grid">' + optionsHtml + '</div>' +
+      reactionsBarHtml +
     '</div>';
   }).join('');
 }
@@ -613,21 +706,25 @@ function renderItinerary() {
   var tl = document.getElementById('itinerary-timeline');
   if (trip.itinerary.length === 0) { tl.innerHTML = '<div class="tip-strip"><span class="tip-icon">📓</span><span>Your journey diary is blank! Click <strong>+ Add Day</strong> to create day-by-day plans. Vote on activities and the best one gets highlighted automatically.</span></div>'; return; }
   tl.innerHTML = trip.itinerary.map(function(day, di) {
+    var activityMarkup = day.activities.map(function(act) {
+      var icon = act.text.indexOf('☕') === 0 ? '☕' : '✦';
+      return '<div class="activity-item ' + (act.confirmed ? 'confirmed' : (act.downvotes > act.upvotes ? 'maybe' : '')) + '">' +
+        '<span class="activity-icon" aria-hidden="true">' + icon + '</span>' +
+        '<span class="activity-text">' + (act.confirmed ? '<span class="highlighter">' + act.text + '</span>' : act.text) + (act.confirmed ? ' <span class="confirmed-label">✓ confirmed</span>' : '') + '</span>' +
+        '<span class="activity-votes" aria-label="Vote for ' + act.text + '">' +
+        '<button class="vote-button vote-up" onclick="voteActivity(\'' + day.id + '\',\'' + act.id + '\',\'up\')" title="Upvote">↑ <span class="vote-count">' + act.upvotes + '</span></button>' +
+        '<button class="vote-button vote-down" onclick="voteActivity(\'' + day.id + '\',\'' + act.id + '\',\'down\')" title="Downvote">↓ <span class="vote-count">' + act.downvotes + '</span></button></span>' +
+        '<button class="activity-remove" onclick="deleteActivity(\'' + day.id + '\',\'' + act.id + '\')" title="Remove activity" aria-label="Remove ' + act.text + '">×</button></div>';
+    }).join('');
     return '<div class="day-block">' +
-      '<div class="day-dot" style="background:' + (di === 0 ? 'var(--secondary)' : 'var(--surface-highest)') + '"></div>' +
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><h3 class="day-heading">' + day.label + '</h3>' +
-      '<button class="btn-icon btn-danger" onclick="deleteDay(\'' + day.id + '\')" style="font-size:0.68rem;">✕</button></div>' +
-      (day.activities.length === 0 ? '<p style="color:var(--on-surf-var);font-size:0.8rem;margin-bottom:8px;">No activities yet</p>' : '') +
-      day.activities.map(function(act) {
-        return '<div class="activity-item ' + (act.confirmed ? 'confirmed' : (act.downvotes > act.upvotes ? 'maybe' : '')) + '">' +
-          '<span class="activity-text">' + (act.confirmed ? '<span class="highlighter">' + act.text + '</span>' : act.text) + (act.confirmed ? ' <span style="color:var(--secondary);font-family:Caveat,cursive;font-size:0.88rem;">✓ confirmed</span>' : '') + '</span>' +
-          '<button class="btn-icon voted" onclick="voteActivity(\'' + day.id + '\',\'' + act.id + '\',\'up\')" title="Upvote">👍 <span class="vote-count">' + act.upvotes + '</span></button>' +
-          '<button class="btn-icon" onclick="voteActivity(\'' + day.id + '\',\'' + act.id + '\',\'down\')" title="Downvote">👎 <span class="vote-count">' + act.downvotes + '</span></button>' +
-          '<button class="btn-icon btn-danger" onclick="deleteActivity(\'' + day.id + '\',\'' + act.id + '\')" title="Remove">✕</button></div>';
-      }).join('') +
-      '<div class="add-activity-form"><div style="display:flex;gap:8px;align-items:flex-end;">' +
-      '<input id="act-input-' + day.id + '" class="journal-input" type="text" placeholder="Suggest an activity..." onkeydown="if(event.key===\'Enter\')addActivity(\'' + day.id + '\')" style="flex:1;"/>' +
-      '<button class="btn btn-sm" onclick="addActivity(\'' + day.id + '\')" style="padding:6px 10px;">+ Add</button></div></div></div>';
+      '<div class="day-dot"><span>' + String(di + 1).padStart(2, '0') + '</span></div>' +
+      '<span class="day-tape" aria-hidden="true"></span><span class="day-paperclip" aria-hidden="true">⌇</span>' +
+      '<div class="day-heading-row"><h3 class="day-heading">' + day.label + '</h3>' +
+      '<button class="day-delete" onclick="deleteDay(\'' + day.id + '\')" title="Remove day" aria-label="Remove ' + day.label + '">×</button></div>' +
+      (day.activities.length === 0 ? '<p class="day-empty">No plans yet — suggest something below ✦</p>' : activityMarkup) +
+      '<div class="add-activity-form"><div class="add-activity-row">' +
+      '<input id="act-input-' + day.id + '" class="journal-input" type="text" placeholder="Suggest an activity..." aria-label="Suggest an activity for ' + day.label + '" onkeydown="if(event.key===\'Enter\')addActivity(\'' + day.id + '\')" />' +
+      '<button class="btn btn-sm add-activity-button" onclick="addActivity(\'' + day.id + '\')">+ Add</button></div></div></div>';
   }).join('');
 }
 
@@ -643,7 +740,8 @@ async function searchCafes() {
   var city = document.getElementById('cafe-city-input').value.trim();
   if (!city) { showToast('Enter a city name!'); return; }
   var loading = document.getElementById('cafe-loading'); var grid = document.getElementById('cafe-grid');
-  loading.style.display = 'block'; grid.innerHTML = '';
+  loading.style.display = 'block';
+  grid.innerHTML = '<div class="cafe-skeleton-grid"><div class="cafe-skeleton"></div><div class="cafe-skeleton"></div><div class="cafe-skeleton"></div></div>';
   var FSQ_KEY = 'fsq3e4y8Q1z2qFzJ4K7M9N1P3R5T7V9X1Z3b5d7f9h1j3l5n7p9r1t3v5x7z9=';
   var url = 'https://api.foursquare.com/v3/places/search?query=cafe&near=' + encodeURIComponent(city) + '&categories=13032&limit=12&fields=name,location,rating';
   try {
@@ -664,17 +762,26 @@ function getMockCafes(city) {
 }
 function renderCafes(cafes) {
   var grid = document.getElementById('cafe-grid'); var trip = getTrip();
-  if (cafes.length === 0) { grid.innerHTML = '<p style="color:var(--on-surf-var);font-size:0.85rem;grid-column:1/-1;">No cafes found.</p>'; return; }
+  if (cafes.length === 0) { grid.innerHTML = '<div class="cafe-empty"><span class="material-symbols-outlined">local_cafe</span><strong>No cafes found</strong><p>Try another city or a nearby neighbourhood.</p></div>'; return; }
+  var cafePhotos = [
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&q=80',
+    'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=900&q=80',
+    'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=900&q=80',
+    'https://images.unsplash.com/photo-1511081692775-05d0f180a065?w=900&q=80'
+  ];
   grid.innerHTML = cafes.map(function(cafe, i) {
     var addr = (cafe.location && cafe.location.formatted_address) || 'Address not available';
-    var rating = cafe.rating ? 'â­ ' + cafe.rating.toFixed(1) + ' / 10' : 'â­ --';
+    var score = cafe.rating ? cafe.rating.toFixed(1) : '--';
+    var photo = cafe.photo || cafePhotos[i % cafePhotos.length];
+    var highlyRated = cafe.rating && cafe.rating >= 8.5;
     var daySelHtml = trip && trip.itinerary.length > 0 ?
-      '<div style="margin-top:10px;"><select class="journal-input cafe-sel-' + i + '" style="font-size:0.72rem;padding:4px;width:100%;margin-bottom:6px;">' +
+      '<div class="cafe-checkin"><label>CHECK IN TO A DAY</label><select class="journal-input cafe-sel-' + i + '">' +
       trip.itinerary.map(function(d) { return '<option value="' + d.id + '">' + d.label + '</option>'; }).join('') + '</select>' +
-      '<button class="btn btn-sm" style="width:100%;" onclick="addCafeToItinerary(\'' + cafe.name + '\',' + i + ')"><span class="material-symbols-outlined" style="font-size:0.85rem;">add</span> Add to Day</button></div>' :
-      '<p style="font-size:0.72rem;color:var(--on-surf-var);margin-top:8px;">Add days in Itinerary tab first</p>';
-    return '<div class="cafe-card" style="transform:rotate(' + (i % 2 === 0 ? '-' : '') + '0.5deg);">' +
-      '<p class="cafe-name">' + cafe.name + '</p><p class="cafe-address">' + addr + '</p><p class="cafe-rating">' + rating + '</p>' + daySelHtml + '</div>';
+      '<button class="btn btn-sm cafe-add-btn" onclick="addCafeToItinerary(\'' + cafe.name.replace(/'/g, "\\'") + '\',' + i + ')"><span class="material-symbols-outlined">add</span> Add to Day</button></div>' :
+      '<p class="cafe-no-day">Add a day in Itinerary first</p>';
+    return '<article class="cafe-card">' +
+      '<div class="cafe-photo-wrap"><img class="cafe-photo" src="' + photo + '" alt="Cozy cafe interior at ' + cafe.name + '" loading="lazy"/><span class="cafe-photo-tag">' + (highlyRated ? 'Highly rated' : 'Cafe pick') + '</span></div>' +
+      '<div class="cafe-card-body"><p class="cafe-name">' + cafe.name + '</p><p class="cafe-address"><span class="material-symbols-outlined">location_on</span>' + addr + '</p><div class="cafe-card-meta"><span class="cafe-rating"><span class="material-symbols-outlined">star</span>' + score + ' / 10</span><span class="cafe-meta-note">coffee &amp; bites</span></div>' + daySelHtml + '</div></article>';
   }).join('');
 }
 function addCafeToItinerary(cafeName, idx) {
@@ -791,6 +898,118 @@ async function fetchTripFromCloud(binId) {
     console.warn('Could not fetch shared trip:', err.message);
     return null;
   }
+}
+
+// ─── LOCAL DEMO AUTH ─────────────────────────────────────────────────────────
+var authMode = 'login';
+
+function initAuthState() {
+  if (localStorage.getItem('currentUser')) document.body.classList.remove('auth-locked');
+  else document.body.classList.add('auth-locked');
+}
+
+function setupLandingExperience() {
+  var revealItems = document.querySelectorAll('.reveal-on-scroll');
+  if ('IntersectionObserver' in window) {
+    var revealObserver = new IntersectionObserver(function(entries, observer) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.16 });
+    revealItems.forEach(function(item) { revealObserver.observe(item); });
+  } else revealItems.forEach(function(item) { item.classList.add('is-visible'); });
+
+  var stats = document.querySelectorAll('[data-count]');
+  var statObserver = 'IntersectionObserver' in window ? new IntersectionObserver(function(entries, observer) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target, target = Number(el.getAttribute('data-count')), start = performance.now();
+      function tick(now) {
+        var progress = Math.min((now - start) / 1200, 1), eased = 1 - Math.pow(1 - progress, 3), value = Math.floor(target * eased);
+        if (target === 20000000) el.textContent = '₹' + Math.floor(value / 10000000) + 'Cr+';
+        else el.textContent = value.toLocaleString() + '+';
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick); observer.unobserve(el);
+    });
+  }, { threshold: 0.6 }) : null;
+  stats.forEach(function(stat) { if (statObserver) statObserver.observe(stat); });
+
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    window.addEventListener('scroll', function() {
+      var hero = document.querySelector('.tnl-hero');
+      if (!hero || document.body.classList.contains('auth-locked') === false) return;
+      var y = Math.min(window.scrollY * 0.08, 28);
+      hero.querySelectorAll('.tnl-photo').forEach(function(photo, index) { photo.style.translate = '0 ' + (y * (index + 1) / 2) + 'px'; });
+    }, { passive: true });
+  }
+}
+
+function openAuth(mode) {
+  setAuthMode(mode || 'login');
+  document.getElementById('auth-modal').classList.add('open');
+  document.getElementById('auth-modal').setAttribute('aria-hidden', 'false');
+  setTimeout(function() { document.getElementById('auth-email').focus(); }, 80);
+}
+
+function closeAuth() {
+  document.getElementById('auth-modal').classList.remove('open');
+  document.getElementById('auth-modal').setAttribute('aria-hidden', 'true');
+  document.getElementById('auth-error').textContent = '';
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  var dialog = document.querySelector('.auth-dialog');
+  dialog.classList.toggle('signup-mode', mode === 'signup');
+  document.getElementById('auth-login-tab').classList.toggle('active', mode === 'login');
+  document.getElementById('auth-signup-tab').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-title').textContent = mode === 'signup' ? 'Start your journal.' : 'Welcome back.';
+  document.getElementById('auth-subtitle').textContent = mode === 'signup' ? 'Make an account and keep every adventure close.' : 'Log in to pick up where you left off.';
+  document.getElementById('auth-submit').innerHTML = (mode === 'signup' ? 'Create account' : 'Log in') + ' <span class="material-symbols-outlined">arrow_forward</span>';
+  document.getElementById('auth-password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function authError(message) {
+  var error = document.getElementById('auth-error');
+  error.textContent = message;
+  error.classList.remove('shake');
+  void error.offsetWidth;
+  error.classList.add('shake');
+}
+
+function submitAuth(event) {
+  event.preventDefault();
+  var name = document.getElementById('auth-name').value.trim();
+  var email = document.getElementById('auth-email').value.trim().toLowerCase();
+  var password = document.getElementById('auth-password').value;
+  if (authMode === 'signup' && name.length < 2) return authError('Add your name so your journal knows you.');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return authError('Please enter a valid email address.');
+  if (password.length < 6) return authError('Password must be at least 6 characters.');
+  var users = JSON.parse(localStorage.getItem('users') || '[]');
+  if (authMode === 'signup') {
+    if (users.some(function(user) { return user.email === email; })) return authError('That email already has a journal. Try logging in.');
+    users.push({ name: name, email: email, password: password }); // Demo only: localStorage is not secure storage.
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('currentUser', JSON.stringify({ name: name, email: email }));
+  } else {
+    var user = users.find(function(item) { return item.email === email && item.password === password; });
+    if (!user) return authError('Email or password did not match. Try again.');
+    localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
+  }
+  closeAuth();
+  document.body.classList.remove('auth-locked');
+  document.getElementById('page-dashboard').classList.add('page-enter');
+  renderDashboard();
+}
+
+function logoutUser() {
+  localStorage.removeItem('currentUser');
+  currentTripId = null;
+  window.location.href = 'stage-1/index.html';
 }
 
 // ─── URL PARAM: Detect shared link and load trip ──────────────────────────────
@@ -910,5 +1129,27 @@ function setGuestName() {
   showToast('Welcome ' + name + '! Happy travels! ✈️');
 }
 
+initAuthState();
+setupLandingExperience();
 initApp();
+
+// Refined scrapbook packing renderer. Kept as an override so existing trip data and controls remain compatible.
+function renderPackingList() {
+  var trip = getTrip(); if (!trip) return;
+  var checked = trip.packing.filter(function(item) { return item.checked; }).length;
+  document.getElementById('packing-progress-badge').textContent = checked + '/' + trip.packing.length + ' packed';
+  var list = document.getElementById('packing-list');
+  if (trip.packing.length === 0) {
+    list.innerHTML = '<div class="packing-empty"><span class="packing-empty__icon">🎒</span><div><strong>Your bag is ready for a story.</strong><span>Add your first item above — passport, sunscreen, or something you can’t leave behind ✦</span></div></div>';
+    return;
+  }
+  list.innerHTML = trip.packing.map(function(item) {
+    return '<div class="pack-item ' + (item.checked ? 'checked' : '') + '">' +
+      '<button class="pack-check ' + (item.checked ? 'checked' : '') + '" onclick="togglePack(\'' + item.id + '\')" aria-label="' + (item.checked ? 'Mark ' : 'Pack ') + item.text + '">' + (item.checked ? '✓' : '') + '</button>' +
+      '<span class="pack-item__icon" aria-hidden="true">' + (item.checked ? '✓' : '✦') + '</span>' +
+      '<span class="pack-item__text">' + item.text + '</span>' +
+      '<span class="pack-item__status">' + (item.checked ? 'packed' : 'to pack') + '</span>' +
+      '<button class="pack-remove" onclick="deletePackItem(\'' + item.id + '\')" title="Remove item" aria-label="Remove ' + item.text + '">×</button></div>';
+  }).join('');
+}
 
