@@ -19,6 +19,9 @@ function setMode(nextMode) {
   subtitle.textContent = signup ? 'Create an account and keep every adventure close.' : 'Log in to pick up where you left off.';
   submit.innerHTML = `${signup ? 'Create account' : 'Log in'} <span>→</span>`;
   passwordField.autocomplete = signup ? 'new-password' : 'current-password';
+  nameField.required = signup;
+  confirmField.required = signup;
+  termsField.required = signup;
   confirmField.value = '';
   termsField.checked = false;
   document.querySelector('#login-tab').classList.toggle('is-active', !signup);
@@ -28,29 +31,59 @@ function setMode(nextMode) {
   error.textContent = '';
 }
 
+function setError(message) {
+  error.textContent = message;
+  submit.disabled = false;
+}
+
+function getUsers() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('users') || '[]');
+    return Array.isArray(stored) ? stored.filter((user) => user && typeof user === 'object') : [];
+  } catch (storageError) {
+    return [];
+  }
+}
+
+function saveSession(user) {
+  try {
+    localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
+    return true;
+  } catch (storageError) {
+    setError('Your browser blocked local storage. Please enable it and try again.');
+    return false;
+  }
+}
+
 document.querySelector('#login-tab').addEventListener('click', () => setMode('login'));
 document.querySelector('#signup-tab').addEventListener('click', () => setMode('signup'));
 
 document.querySelector('#auth-form').addEventListener('submit', (event) => {
   event.preventDefault();
+  error.textContent = '';
   const name = nameField.value.trim();
   const email = emailField.value.trim().toLowerCase();
   const password = passwordField.value;
-  if (mode === 'signup' && name.length < 2) return error.textContent = 'Please add your name.';
-  if (!/^\S+@\S+\.\S+$/.test(email)) return error.textContent = 'Please enter a valid email address.';
-  if (password.length < 6) return error.textContent = 'Password must be at least 6 characters.';
-  if (mode === 'signup' && confirmField.value !== password) return error.textContent = 'Your passwords do not match.';
-  if (mode === 'signup' && !termsField.checked) return error.textContent = 'Please accept the terms to continue.';
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  if (mode === 'signup' && name.length < 2) return setError('Please add your name.');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Please enter a valid email address.');
+  if (password.length < 6) return setError('Password must be at least 6 characters.');
+  if (mode === 'signup' && confirmField.value !== password) return setError('Your passwords do not match.');
+  if (mode === 'signup' && !termsField.checked) return setError('Please accept the terms to continue.');
+  const users = getUsers();
+  submit.disabled = true;
   if (mode === 'signup') {
-    if (users.some((user) => user.email === email)) return error.textContent = 'That email already has a journal. Try logging in.';
+    if (users.some((user) => String(user.email || '').trim().toLowerCase() === email)) return setError('That email already has a journal. Try logging in.');
     users.push({ name, email, password });
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('currentUser', JSON.stringify({ name, email }));
+    try {
+      localStorage.setItem('users', JSON.stringify(users));
+    } catch (storageError) {
+      return setError('Could not save your account in this browser. Please try again.');
+    }
+    if (!saveSession({ name, email })) return;
   } else {
-    const user = users.find((item) => item.email === email && item.password === password);
-    if (!user) return error.textContent = 'Email or password did not match. Try again.';
-    localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
+    const user = users.find((item) => String(item.email || '').trim().toLowerCase() === email && item.password === password);
+    if (!user) return setError('Email or password did not match. Try again.');
+    if (!saveSession({ name: user.name, email: user.email })) return;
   }
   window.location.href = '../index.html?app=1';
 });

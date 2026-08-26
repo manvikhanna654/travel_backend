@@ -132,7 +132,12 @@
         <button class="trip-tab" data-tab="polls" onclick="switchTab('polls')"><span class="nav-icon nav-icon-lilac">&#128202;</span><span>Polls</span></button>
         <button class="trip-tab" data-tab="debts" onclick="switchTab('debts')"><span class="nav-icon nav-icon-orange">&#9878;&#65039;</span><span>Settle Up</span></button>
       </nav>
-      <div class="sidebar-note"><span class="material-symbols-outlined">auto_awesome</span><span>Make memories<br>together ✦</span></div>
+      <div class="trip-weather-card" id="trip-weather-card" aria-label="Weather for current trip destination">
+        <div class="trip-weather-card__top"><span><i class="material-symbols-outlined">water_drop</i><small>Humidity<br>—</small></span><span><i class="material-symbols-outlined">air</i><small>Wind<br>—</small></span></div>
+        <div class="trip-weather-card__main"><span class="trip-weather-card__sun material-symbols-outlined">wb_sunny</span><div><strong>—°C</strong><small id="trip-weather-destination">Your destination</small></div></div>
+        <div class="trip-weather-card__details"><span><i class="material-symbols-outlined">airwave</i><small>AQI<br>—</small></span><span><i class="material-symbols-outlined">device_thermostat</i><small>Real feel<br>—</small></span><span><i class="material-symbols-outlined">speed</i><small>Pressure<br>—</small></span></div>
+        <div class="trip-weather-card__status">WEATHER SOON</div>
+      </div>
     </div>
     <div class="trip-header">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">

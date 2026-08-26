@@ -38,9 +38,17 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-link').forEach(function(n) { n.classList.remove('active'); });
-  if (page === 'dashboard') { document.getElementById('nav-dashboard').classList.add('active'); renderDashboard(); }
+  if (page === 'dashboard') { document.getElementById('nav-dashboard').classList.add('active'); renderDashboard(); updateWeatherLocation(null); }
   if (page === 'trip') { document.getElementById('nav-trip').classList.add('active'); renderTripPage(); }
   window.scrollTo(0, 0);
+}
+
+function updateWeatherLocation(trip) {
+  var card = document.getElementById('trip-weather-card');
+  var name = document.getElementById('trip-weather-destination');
+  if (!card || !name) return;
+  card.hidden = !trip;
+  if (trip) name.textContent = trip.dest;
 }
 
 function switchTab(tab) {
@@ -186,6 +194,7 @@ function renderSummaryCards(trip) {
 
 function renderTripPage() {
   var trip = getTrip(); if (!trip) { showPage('dashboard'); return; }
+  updateWeatherLocation(trip);
   document.getElementById('trip-title').textContent = trip.name;
   var sidebarTitle = document.getElementById('sidebar-trip-title');
   if (sidebarTitle) sidebarTitle.textContent = trip.name;

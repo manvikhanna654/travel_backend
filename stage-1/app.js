@@ -63,7 +63,9 @@ document.querySelectorAll('.reveal').forEach((element) => revealObserver.observe
   const request = () => { if (!raf) raf = requestAnimationFrame(tick); };
   function update() {
     const scroll = distance();
-    if (!initialized || reduceMotion.matches) { smoothScroll = scroll; initialized = true; } else smoothScroll = lerp(smoothScroll, scroll, .14);
+    // Keep a little smoothing without letting the artwork visibly trail the
+    // user's wheel or touch position.
+    if (!initialized || reduceMotion.matches) { smoothScroll = scroll; initialized = true; } else smoothScroll = lerp(smoothScroll, scroll, .28);
     if (Math.abs(smoothScroll - scroll) < .08) smoothScroll = scroll;
     mouseX = lerp(mouseX, targetX, .12); mouseY = lerp(mouseY, targetY, .12);
     const frame2 = segment(smoothScroll, 560, 900, 1300, 1620), frame3 = segment(smoothScroll, 1760, 2140, 2540, 2700);
@@ -97,35 +99,6 @@ document.querySelectorAll('.reveal').forEach((element) => revealObserver.observe
     videos[active].play().catch(() => {});
   }, 7000);
 })();
-
-const animateNumber = (element) => {
-  const target = Number(element.dataset.value);
-  const prefix = element.dataset.prefix || '';
-  const suffix = element.dataset.suffix || '';
-  const duration = 1150;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    element.textContent = `${prefix}${target.toLocaleString()}${suffix}`;
-    return;
-  }
-  const start = performance.now();
-  const easeOut = (value) => 1 - Math.pow(1 - value, 3);
-  const tick = (now) => {
-    const progress = Math.min((now - start) / duration, 1);
-    element.textContent = `${prefix}${Math.round(target * easeOut(progress)).toLocaleString()}${suffix}`;
-    if (progress < 1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-};
-
-const statsObserver = new IntersectionObserver((entries, observer) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      animateNumber(entry.target);
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.7 });
-document.querySelectorAll('.stat-number').forEach((number) => statsObserver.observe(number));
 
 const timeline = document.querySelector('.timeline-wrap');
 if (timeline) {
