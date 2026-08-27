@@ -48,7 +48,19 @@ function updateWeatherLocation(trip) {
   var name = document.getElementById('trip-weather-destination');
   if (!card || !name) return;
   card.hidden = !trip;
-  if (trip) name.textContent = trip.dest;
+  if (trip) {
+    name.textContent = trip.dest;
+    // Demo values for the presentation until a live weather API is connected.
+    // The trip id keeps the same trip's weather stable across re-renders.
+    var seed = String(trip.id || trip.dest).split('').reduce(function(sum, char) { return sum + char.charCodeAt(0); }, 0);
+    var temperature = 24 + (seed % 11);
+    document.getElementById('weather-temperature').textContent = temperature + '°C';
+    document.getElementById('weather-humidity').textContent = (52 + (seed % 31)) + '%';
+    document.getElementById('weather-wind').textContent = (8 + (seed % 15)) + ' km/h';
+    document.getElementById('weather-aqi').textContent = 28 + (seed % 48);
+    document.getElementById('weather-feels').textContent = (temperature + 2) + '°C';
+    document.getElementById('weather-pressure').textContent = (1008 + (seed % 13)) + ' hPa';
+  }
 }
 
 function switchTab(tab) {
