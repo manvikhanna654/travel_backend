@@ -959,11 +959,21 @@ function setupLandingExperience() {
   stats.forEach(function(stat) { if (statObserver) statObserver.observe(stat); });
 
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var parallaxFrame = null;
+    var latestScrollY = 0;
     window.addEventListener('scroll', function() {
-      var hero = document.querySelector('.tnl-hero');
-      if (!hero || document.body.classList.contains('auth-locked') === false) return;
-      var y = Math.min(window.scrollY * 0.08, 28);
-      hero.querySelectorAll('.tnl-photo').forEach(function(photo, index) { photo.style.translate = '0 ' + (y * (index + 1) / 2) + 'px'; });
+      latestScrollY = window.scrollY;
+      if (parallaxFrame !== null) return;
+      parallaxFrame = requestAnimationFrame(function() {
+        var hero = document.querySelector('.tnl-hero');
+        if (hero && document.body.classList.contains('auth-locked')) {
+          var y = Math.min(latestScrollY * 0.08, 28);
+          hero.querySelectorAll('.tnl-photo').forEach(function(photo, index) {
+            photo.style.translate = '0 ' + (y * (index + 1) / 2) + 'px';
+          });
+        }
+        parallaxFrame = null;
+      });
     }, { passive: true });
   }
 }

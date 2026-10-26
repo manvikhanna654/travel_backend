@@ -3147,6 +3147,10 @@ body:not(.auth-locked) #page-dashboard .landing-sections { display:none; }
 @media (max-width:760px) { .lp-section { width:calc(100% - 36px); padding:76px 0; }.lp-steps,.lp-stats,.lp-quote-row { grid-template-columns:1fr; }.lp-step:nth-child(2) { transform:none; }.lp-feature,.lp-feature-reverse { flex-direction:column; align-items:stretch; gap:28px; }.lp-feature-art { flex-basis:auto; min-height:230px; }.lp-quote-row blockquote:nth-child(2) { transform:rotate(1deg); }.lp-footer { flex-direction:column; text-align:center; }.lp-footer div { flex-wrap:wrap; justify-content:center; } }
 @media (prefers-reduced-motion:reduce) { .reveal-on-scroll { opacity:1; transform:none; transition:none; } }
 
+/* Smooth, low-cost landing-page motion. */
+.tnl-photo { will-change:transform; backface-visibility:hidden; }
+.reveal-on-scroll { will-change:opacity,transform; transition-duration:.55s; }
+
 /* =====================================================
    DASHBOARD POLISH PASS - shared product rhythm
    ===================================================== */
