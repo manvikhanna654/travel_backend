@@ -1,15 +1,20 @@
-var trips = JSON.parse(localStorage.getItem('ts_trips') || '[]');
+var legacyTrips = JSON.parse(localStorage.getItem('ts_trips') || '[]');
+var trips = [];
 var currentTripId = null;
 var currentTravelers = [];
 var expenseChart = null;
 var guestName = null; // Name of a user who joined via shared link
+var API_BASE = 'http://localhost:5000/api';
+var weatherCache = Object.create(null);
+var weatherRequestSerial = 0;
+var destinationCountryHints = { bali: 'ID' };
 
 // ─── JSONBIN CLOUD CONFIG ─────────────────────────────────────────────────────
 // Using JSONBin.io (free public bin) as the shared cloud REST API.
 // Each trip is stored as an individual bin. The bin ID IS the trip's cloud key.
 // Students: Sign up at https://jsonbin.io/ and replace JSONBIN_KEY with your own.
-var JSONBIN_KEY = '$2a$10$FXvzpLGvjKhviBUVo.gD8.udCuW6IfJQWGALy.OERLaXztwbjCcKS';
-var JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
+var JSONBIN_KEY = null;
+var JSONBIN_BASE = null;
 
 
 var CAT_ICONS = { food: '🍟', stay: '🏠', transport: '🚗', activities: '🎡', misc: '📌' };
@@ -30,8 +35,79 @@ var DEST_PHOTOS = {
   santorini: 'https://images.unsplash.com/photo-1507501336603-6760d5b09d47?w=400&q=75',
   default: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=75'
 };
+var CURATED_CAFES = {
+  goa: [
+    ['Baba Au Rum', 'A relaxed Panjim favourite for creative plates, coffee, and cocktails.', 4.8],
+    ['Cafe Bodega', 'A leafy courtyard cafe inside a heritage art space with easy brunches.', 4.7],
+    ['Artjuna', 'A bright Anjuna garden cafe known for healthy bowls, bakes, and a calm atmosphere.', 4.6],
+    ['Mojigao', 'A lush Assagao hideaway for slow breakfasts, fresh juices, and long lunches.', 4.7],
+    ['Cafe Chocolatti', 'A cosy chocolate-and-coffee stop surrounded by a peaceful garden.', 4.5],
+    ['Patisserie Victoria', 'A charming Panjim bakery cafe for pastries, tea, and quick sweet breaks.', 4.4]
+  ],
+  bali: [
+    ['Revolver Espresso', 'A lively Seminyak coffee bar serving strong espresso and all-day comfort food.', 4.8],
+    ['Sisterfields', 'A bright brunch spot with coffee, salads, and generous plates in Seminyak.', 4.7],
+    ['Kynd Community', 'A colourful plant-based cafe famous for smoothie bowls and playful interiors.', 4.6],
+    ['The Loft', 'A relaxed Canggu cafe with coffee, brunch plates, and a laid-back workspace feel.', 4.5],
+    ['Crate Cafe', 'A popular Canggu breakfast stop with fresh juices and generous cafe classics.', 4.5],
+    ['Milk & Madu', 'A friendly family-style cafe for pizza, coffee, brunch, and sunset bites.', 4.6]
+  ]
+};
+var CURATED_CAFE_IMAGES = [
+  'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&q=80',
+  'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=900&q=80',
+  'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=900&q=80',
+  'https://images.unsplash.com/photo-1511081692775-05d0f180a065?w=900&q=80'
+];
 
-function saveTrips() { localStorage.setItem('ts_trips', JSON.stringify(trips)); }
+async function apiRequest(path, options) {
+  var requestOptions = options || {};
+  requestOptions.headers = Object.assign({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('authToken') }, requestOptions.headers || {});
+  var response = await fetch(API_BASE + path, requestOptions);
+  var result = await response.json();
+  if (!response.ok) throw new Error(result.message || 'Backend request failed');
+  return result;
+}
+
+function saveTrips() {
+  var trip = getTrip();
+  if (trip) saveTripToBackend(trip);
+}
+
+async function saveTripToBackend(trip) {
+  if (!trip || !localStorage.getItem('authToken')) return null;
+  setSyncBadge('syncing');
+  try {
+    var result = await apiRequest('/trips', { method: 'POST', body: JSON.stringify({ trip: trip }) });
+    setSyncBadge('synced');
+    return result.trip;
+  } catch (error) {
+    setSyncBadge(null);
+    console.warn('Could not save trip to MongoDB:', error.message);
+    return null;
+  }
+}
+
+async function deleteTripFromBackend(id) {
+  try { await apiRequest('/trips/' + encodeURIComponent(id), { method: 'DELETE' }); }
+  catch (error) { console.warn('Could not delete trip from MongoDB:', error.message); }
+}
+
+async function loadTripsFromBackend() {
+  try {
+    var result = await apiRequest('/trips');
+    trips = result.trips || [];
+    if (trips.length === 0 && Array.isArray(legacyTrips) && legacyTrips.length > 0) {
+      trips = legacyTrips;
+      for (var i = 0; i < trips.length; i++) await saveTripToBackend(trips[i]);
+    }
+    localStorage.removeItem('ts_trips');
+  } catch (error) {
+    console.warn('Could not load trips from MongoDB:', error.message);
+    trips = [];
+    showToast('Could not load your trips from the backend.');
+  }
+}
 function getTrip() { return trips.find(function(t) { return t.id === currentTripId; }); }
 
 function showPage(page) {
@@ -43,24 +119,127 @@ function showPage(page) {
   window.scrollTo(0, 0);
 }
 
+function weatherIconForCode(code, isDay) {
+  if (code === 0) return isDay ? 'clear_day' : 'clear_night';
+  if (code >= 1 && code <= 3) return isDay ? 'partly_cloudy_day' : 'partly_cloudy_night';
+  if (code === 45 || code === 48) return 'foggy';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rainy';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'weather_snowy';
+  if (code >= 95) return 'thunderstorm';
+  return 'cloud';
+}
+
+function setWeatherValues(data) {
+  var icon = document.querySelector('.trip-weather-card__sun');
+  var status = document.querySelector('.trip-weather-card__status');
+  if (icon) icon.textContent = weatherIconForCode(data.weatherCode, data.isDay);
+  document.getElementById('weather-temperature').textContent = Math.round(data.temperature) + '°C';
+  document.getElementById('weather-humidity').textContent = Math.round(data.humidity) + '%';
+  document.getElementById('weather-wind').textContent = Math.round(data.windSpeed) + ' km/h';
+  document.getElementById('weather-aqi').textContent = data.aqi == null ? '—' : Math.round(data.aqi);
+  document.getElementById('weather-feels').textContent = Math.round(data.feelsLike) + '°C';
+  document.getElementById('weather-pressure').textContent = Math.round(data.pressure) + ' hPa';
+  if (status) status.textContent = data.live ? 'LIVE WEATHER' : 'WEATHER UNAVAILABLE';
+}
+
+async function fetchLiveWeather(destination) {
+  var cacheKey = 'v2:' + destination.trim().toLowerCase();
+  var cached = weatherCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) return cached.data;
+
+  var geocodeUrl = 'https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({
+    name: destination,
+    count: '10',
+    language: 'en',
+    format: 'json'
+  }).toString();
+  var geocodeResponse = await fetch(geocodeUrl);
+  if (!geocodeResponse.ok) throw new Error('Could not find that destination');
+  var geocode = await geocodeResponse.json();
+  var results = geocode.results || [];
+  var normalizedDestination = destination.trim().toLowerCase();
+  var explicitCountry = results.find(function(result) {
+    return result.country && normalizedDestination.indexOf(result.country.toLowerCase()) !== -1;
+  });
+  var hintedCountry = destinationCountryHints[normalizedDestination];
+  var place = explicitCountry || (hintedCountry && results.find(function(result) {
+    return result.country_code === hintedCountry;
+  })) || results[0];
+  if (!place) throw new Error('No matching destination found');
+
+  var forecastUrl = 'https://api.open-meteo.com/v1/forecast?' + new URLSearchParams({
+    latitude: String(place.latitude),
+    longitude: String(place.longitude),
+    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,is_day',
+    timezone: 'auto'
+  }).toString();
+  var forecastResponse = await fetch(forecastUrl);
+  if (!forecastResponse.ok) throw new Error('Could not load current weather');
+  var forecast = await forecastResponse.json();
+  var current = forecast.current || {};
+
+  var aqi = null;
+  try {
+    var airUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?' + new URLSearchParams({
+      latitude: String(place.latitude),
+      longitude: String(place.longitude),
+      current: 'us_aqi',
+      timezone: 'auto'
+    }).toString();
+    var airResponse = await fetch(airUrl);
+    if (airResponse.ok) {
+      var air = await airResponse.json();
+      aqi = air.current && air.current.us_aqi;
+    }
+  } catch (error) {
+    console.warn('Could not load air quality:', error.message);
+  }
+
+  var data = {
+    displayName: [place.name, place.country].filter(Boolean).join(', '),
+    temperature: current.temperature_2m,
+    humidity: current.relative_humidity_2m,
+    feelsLike: current.apparent_temperature,
+    weatherCode: current.weather_code,
+    windSpeed: current.wind_speed_10m,
+    pressure: current.pressure_msl,
+    isDay: current.is_day === 1,
+    aqi: aqi,
+    live: true
+  };
+  weatherCache[cacheKey] = { timestamp: Date.now(), data: data };
+  return data;
+}
+
 function updateWeatherLocation(trip) {
   var card = document.getElementById('trip-weather-card');
   var name = document.getElementById('trip-weather-destination');
   if (!card || !name) return;
   card.hidden = !trip;
-  if (trip) {
-    name.textContent = trip.dest;
-    // Demo values for the presentation until a live weather API is connected.
-    // The trip id keeps the same trip's weather stable across re-renders.
+  if (!trip) { weatherRequestSerial++; return; }
+
+  name.textContent = trip.dest;
+  card.setAttribute('aria-busy', 'true');
+  var requestId = ++weatherRequestSerial;
+  var requestedTripId = trip.id;
+  fetchLiveWeather(trip.dest).then(function(data) {
+    if (requestId !== weatherRequestSerial || currentTripId !== requestedTripId) return;
+    name.textContent = data.displayName || trip.dest;
+    setWeatherValues(data);
+  }).catch(function(error) {
+    if (requestId !== weatherRequestSerial || currentTripId !== requestedTripId) return;
+    console.warn('Could not load live weather:', error.message);
+    // Keep the card useful when the weather service is unavailable.
     var seed = String(trip.id || trip.dest).split('').reduce(function(sum, char) { return sum + char.charCodeAt(0); }, 0);
-    var temperature = 24 + (seed % 11);
-    document.getElementById('weather-temperature').textContent = temperature + '°C';
-    document.getElementById('weather-humidity').textContent = (52 + (seed % 31)) + '%';
-    document.getElementById('weather-wind').textContent = (8 + (seed % 15)) + ' km/h';
-    document.getElementById('weather-aqi').textContent = 28 + (seed % 48);
-    document.getElementById('weather-feels').textContent = (temperature + 2) + '°C';
-    document.getElementById('weather-pressure').textContent = (1008 + (seed % 13)) + ' hPa';
-  }
+    setWeatherValues({
+      temperature: 24 + (seed % 11), humidity: 52 + (seed % 31),
+      windSpeed: 8 + (seed % 15), aqi: 28 + (seed % 48),
+      feelsLike: 26 + (seed % 11), pressure: 1008 + (seed % 13),
+      weatherCode: 0, isDay: true, live: false
+    });
+  }).finally(function() {
+    if (requestId === weatherRequestSerial) card.removeAttribute('aria-busy');
+  });
 }
 
 function switchTab(tab) {
@@ -71,6 +250,12 @@ function switchTab(tab) {
   if (tab === 'expenses') renderExpenses();
   if (tab === 'itinerary') renderItinerary();
   if (tab === 'packing') renderPackingList();
+  if (tab === 'cafes') {
+    var cafeInput = document.getElementById('cafe-city-input');
+    var activeTrip = getTrip();
+    if (activeTrip && cafeInput && !cafeInput.value.trim()) cafeInput.value = activeTrip.dest;
+    if (cafeInput && cafeInput.value.trim()) searchCafes();
+  }
   if (tab === 'polls') renderPolls();
   if (tab === 'debts') renderDebts();
 }
@@ -127,9 +312,8 @@ function createTrip() {
   if (!dest) { showToast('Please enter a destination!'); return; }
   if (currentTravelers.length === 0) { showToast('Add at least one traveler!'); return; }
   var trip = { id: Date.now().toString(), name: name, dest: dest, start: start, end: end, budget: budget, travelers: currentTravelers.slice(), expenses: [], itinerary: [], packing: [], createdAt: new Date().toISOString() };
-  trips.unshift(trip); saveTrips(); closeModal('modal-new-trip');
+  trips.unshift(trip); currentTripId = trip.id; saveTrips(); closeModal('modal-new-trip');
   showToast('"' + name + '" created! ✈️'); currentTripId = trip.id;
-  saveTripToCloud(trip); // async: upload new trip to cloud for sharing
   showPage('trip');
 }
 
@@ -176,6 +360,7 @@ function renderTripCard(trip, i) {
 function openTrip(id) { currentTripId = id; showPage('trip'); }
 function deleteTrip(id) {
   if (!confirm('Delete this trip? This cannot be undone.')) return;
+  deleteTripFromBackend(id);
   trips = trips.filter(function(t) { return t.id !== id; });
   saveTrips(); renderDashboard(); showToast('Trip deleted.');
 }
@@ -240,20 +425,56 @@ function populateExpenseModal() {
   }).join('');
 }
 
-function addExpense() {
+async function uploadReceipt(file) {
+  var token = localStorage.getItem('authToken');
+  if (!token || !file) return null;
+  var formData = new FormData();
+  formData.append('receipt', file);
+  var response = await fetch(API_BASE + '/uploads/receipts', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: formData
+  });
+  var result = await response.json();
+  if (!response.ok) throw new Error(result.message || 'Receipt upload failed.');
+  return result.receiptUrl;
+}
+
+async function openReceipt(event, receiptUrl) {
+  event.preventDefault();
+  var receiptWindow = window.open('', '_blank');
+  if (!receiptWindow) { showToast('Please allow pop-ups to view the receipt.'); return; }
+  receiptWindow.document.write('<p style="font-family:Arial;padding:24px;">Loading receipt...</p>');
+  try {
+    var response = await fetch(receiptUrl, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') } });
+    if (!response.ok) throw new Error('Receipt could not be opened.');
+    var objectUrl = URL.createObjectURL(await response.blob());
+    receiptWindow.location.href = objectUrl;
+  } catch (error) { receiptWindow.close(); showToast(error.message); }
+}
+
+async function addExpense() {
   var trip = getTrip(); if (!trip) return;
   var desc = document.getElementById('exp-desc-input').value.trim();
   var amount = parseFloat(document.getElementById('exp-amount-input').value);
   var category = document.getElementById('exp-category-input').value;
   var paidBy = document.getElementById('exp-paidby-input').value;
+  var receiptInput = document.getElementById('exp-receipt-input');
+  var receiptFile = receiptInput && receiptInput.files[0];
   var splitBoxes = document.querySelectorAll('#exp-split-checks input:checked');
   var splitBetween = Array.from(splitBoxes).map(function(b) { return b.value; });
   if (!desc) { showToast('Add a description!'); return; }
   if (!amount || amount <= 0) { showToast('Enter a valid amount!'); return; }
   if (splitBetween.length === 0) { showToast('Select who to split between!'); return; }
-  trip.expenses.push({ id: Date.now().toString(), desc: desc, amount: amount, category: category, paidBy: paidBy, splitBetween: splitBetween, settled: false, createdAt: new Date().toISOString() });
+  var receiptUrl = null;
+  if (receiptFile) {
+    if (receiptFile.size > 5 * 1024 * 1024) { showToast('Receipt must be smaller than 5 MB.'); return; }
+    try { showToast('Uploading receipt...'); receiptUrl = await uploadReceipt(receiptFile); }
+    catch (error) { showToast(error.message || 'Receipt upload failed.'); return; }
+  }
+  trip.expenses.push({ id: Date.now().toString(), desc: desc, amount: amount, category: category, paidBy: paidBy, splitBetween: splitBetween, settled: false, receiptUrl: receiptUrl, receiptName: receiptFile ? receiptFile.name : '', createdAt: new Date().toISOString() });
   saveTrips(); closeModal('modal-add-expense');
-  document.getElementById('exp-desc-input').value = ''; document.getElementById('exp-amount-input').value = '';
+  document.getElementById('exp-desc-input').value = ''; document.getElementById('exp-amount-input').value = ''; if (receiptInput) receiptInput.value = '';
   updateTripInCloud(trip); // async: sync new expense to cloud
   renderExpenses(); updateSummaryStats(); showToast('Expense added! 🧾');
 }
@@ -290,12 +511,14 @@ function renderExpenses() {
     list.innerHTML = trip.expenses.map(function(exp, i) {
       var perPerson = (exp.amount / exp.splitBetween.length).toFixed(2);
       var sign = i % 2 === 0 ? '-' : '+'; var deg = 1 + (i % 2);
+      var receiptLink = exp.receiptUrl ? '<a class="receipt-file-link" href="#" data-receipt-url="' + escapeHtml(exp.receiptUrl) + '" onclick="openReceipt(event, this.dataset.receiptUrl)">📎 View receipt</a>' : '';
       return '<div class="receipt-slip" style="transform:rotate(' + sign + deg + 'deg);' + (exp.settled ? 'opacity:0.55;' : '') + '">' +
         '<div class="receipt-dashed" style="display:flex;justify-content:space-between;align-items:flex-start;">' +
         '<div><p class="receipt-desc">' + exp.desc + (exp.settled ? ' <span style="color:var(--secondary);font-family:Caveat,cursive;font-size:0.95rem;">✓ settled</span>' : '') + '</p>' +
         '<p class="receipt-meta">' + CAT_ICONS[exp.category] + ' ' + exp.category + ' · Paid by ' + exp.paidBy + '</p>' +
         '<p class="receipt-meta" style="margin-top:3px;">Split: ' + exp.splitBetween.join(', ') + ' · \u20b9' + perPerson + '/person</p></div>' +
         '<span class="receipt-amount">\u20b9' + exp.amount.toFixed(2) + '</span></div>' +
+        receiptLink +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
         '<button class="btn-icon" onclick="toggleSettled(\'' + exp.id + '\')" style="font-size:0.7rem;">' + (exp.settled ? '↩ Unsettle' : '✓ Settle') + '</button>' +
         '<button class="btn-icon btn-danger" onclick="deleteExpense(\'' + exp.id + '\')" style="font-size:0.7rem;">✕ Remove</button></div></div>';
@@ -763,46 +986,60 @@ async function searchCafes() {
   var loading = document.getElementById('cafe-loading'); var grid = document.getElementById('cafe-grid');
   loading.style.display = 'block';
   grid.innerHTML = '<div class="cafe-skeleton-grid"><div class="cafe-skeleton"></div><div class="cafe-skeleton"></div><div class="cafe-skeleton"></div></div>';
-  var FSQ_KEY = 'fsq3e4y8Q1z2qFzJ4K7M9N1P3R5T7V9X1Z3b5d7f9h1j3l5n7p9r1t3v5x7z9=';
-  var url = 'https://api.foursquare.com/v3/places/search?query=cafe&near=' + encodeURIComponent(city) + '&categories=13032&limit=12&fields=name,location,rating';
-  try {
-    var res = await fetch(url, { headers: { 'Authorization': FSQ_KEY, 'Accept': 'application/json' } });
-    if (!res.ok) throw new Error('API error');
-    var data = await res.json(); loading.style.display = 'none'; renderCafes(data.results || []);
-  } catch (err) { loading.style.display = 'none'; renderCafes(getMockCafes(city)); }
+  await new Promise(function(resolve) { setTimeout(resolve, 300); });
+  loading.style.display = 'none';
+  renderCafes(getCuratedCafes(city));
 }
-function getMockCafes(city) {
-  return [
-    { name: 'The Wanderer Cafe', location: { formatted_address: '12 Main St, ' + city }, rating: 8.4 },
-    { name: 'Scrapbook Coffee', location: { formatted_address: 'Old Quarter, ' + city }, rating: 9.1 },
-    { name: 'Journal & Brew', location: { formatted_address: '5 Heritage Lane, ' + city }, rating: 8.7 },
-    { name: 'Polaroid Espresso', location: { formatted_address: 'Bazaar Road, ' + city }, rating: 7.9 },
-    { name: 'Washi Tape Cafe', location: { formatted_address: 'Near Museum, ' + city }, rating: 8.2 },
-    { name: 'The Torn Receipt', location: { formatted_address: 'Market Square, ' + city }, rating: 8.8 }
+function getCuratedCafes(city) {
+  var normalized = city.toLowerCase();
+  var key = Object.keys(CURATED_CAFES).find(function(name) { return normalized.indexOf(name) !== -1; });
+  var cityLabel = city.replace(/\s+/g, ' ').trim().replace(/\b\w/g, function(letter) { return letter.toUpperCase(); });
+  var items = key ? CURATED_CAFES[key] : [
+    ['The Morning Brew', 'A relaxed local-style cafe idea for coffee, breakfast, and a slow start.', 4.5],
+    ['Old Town Coffee', 'A cosy stop for espresso, pastries, and a little neighbourhood atmosphere.', 4.4],
+    ['The Green Table', 'A bright cafe idea with light meals, fresh drinks, and a peaceful setting.', 4.6],
+    ['Roast & Wander', 'A casual coffee-and-bites pick for a break between sightseeing plans.', 4.3],
+    ['The Courtyard Cafe', 'A laid-back place idea for brunch, conversation, and a relaxed afternoon.', 4.5],
+    ['Sunset Brew House', 'An easy evening cafe idea for desserts, coffee, and winding down.', 4.4]
   ];
+  return items.map(function(item, index) {
+    return {
+      name: item[0],
+      description: item[1],
+      rating: item[2],
+      ratingLabel: key ? 'TripSplit pick' : 'Sample idea',
+      address: key ? key.charAt(0).toUpperCase() + key.slice(1) : cityLabel,
+      photoUrl: CURATED_CAFE_IMAGES[index % CURATED_CAFE_IMAGES.length],
+      isSample: !key
+    };
+  });
+}
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>'"]/g, function(char) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char];
+  });
 }
 function renderCafes(cafes) {
   var grid = document.getElementById('cafe-grid'); var trip = getTrip();
   if (cafes.length === 0) { grid.innerHTML = '<div class="cafe-empty"><span class="material-symbols-outlined">local_cafe</span><strong>No cafes found</strong><p>Try another city or a nearby neighbourhood.</p></div>'; return; }
-  var cafePhotos = [
-    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&q=80',
-    'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=900&q=80',
-    'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=900&q=80',
-    'https://images.unsplash.com/photo-1511081692775-05d0f180a065?w=900&q=80'
-  ];
   grid.innerHTML = cafes.map(function(cafe, i) {
-    var addr = (cafe.location && cafe.location.formatted_address) || 'Address not available';
-    var score = cafe.rating ? cafe.rating.toFixed(1) : '--';
-    var photo = cafe.photo || cafePhotos[i % cafePhotos.length];
-    var highlyRated = cafe.rating && cafe.rating >= 8.5;
+    var name = cafe.name || 'Cafe';
+    var safeName = escapeHtml(name);
+    var addr = escapeHtml(cafe.address || 'Address not available');
+    var score = cafe.rating ? Number(cafe.rating).toFixed(1) : '--';
+    var reviewCount = cafe.ratingLabel || (cafe.reviewCount ? Number(cafe.reviewCount).toLocaleString() + ' reviews' : 'No reviews');
+    var description = escapeHtml(cafe.description || cafe.category || 'A local cafe worth exploring.');
+    var photoUrl = cafe.photoUrl ? escapeHtml(cafe.photoUrl) : '';
+    var highlyRated = cafe.rating && cafe.rating >= 4.5;
+    var photo = photoUrl ? '<img class="cafe-photo" src="' + photoUrl + '" alt="Illustrative cafe image for ' + safeName + '" loading="lazy" />' : '<div class="cafe-photo cafe-photo-placeholder"><span class="material-symbols-outlined">local_cafe</span></div>';
     var daySelHtml = trip && trip.itinerary.length > 0 ?
       '<div class="cafe-checkin"><label>CHECK IN TO A DAY</label><select class="journal-input cafe-sel-' + i + '">' +
       trip.itinerary.map(function(d) { return '<option value="' + d.id + '">' + d.label + '</option>'; }).join('') + '</select>' +
-      '<button class="btn btn-sm cafe-add-btn" onclick="addCafeToItinerary(\'' + cafe.name.replace(/'/g, "\\'") + '\',' + i + ')"><span class="material-symbols-outlined">add</span> Add to Day</button></div>' :
+      '<button class="btn btn-sm cafe-add-btn" onclick="addCafeToItinerary(' + JSON.stringify(name).replace(/</g, '\\u003c') + ',' + i + ')"><span class="material-symbols-outlined">add</span> Add to Day</button></div>' :
       '<p class="cafe-no-day">Add a day in Itinerary first</p>';
     return '<article class="cafe-card">' +
-      '<div class="cafe-photo-wrap"><img class="cafe-photo" src="' + photo + '" alt="Cozy cafe interior at ' + cafe.name + '" loading="lazy"/><span class="cafe-photo-tag">' + (highlyRated ? 'Highly rated' : 'Cafe pick') + '</span></div>' +
-      '<div class="cafe-card-body"><p class="cafe-name">' + cafe.name + '</p><p class="cafe-address"><span class="material-symbols-outlined">location_on</span>' + addr + '</p><div class="cafe-card-meta"><span class="cafe-rating"><span class="material-symbols-outlined">star</span>' + score + ' / 10</span><span class="cafe-meta-note">coffee &amp; bites</span></div>' + daySelHtml + '</div></article>';
+      '<div class="cafe-photo-wrap">' + photo + '<span class="cafe-photo-tag">' + (cafe.isSample ? 'Sample idea' : 'Illustrative image') + '</span></div>' +
+      '<div class="cafe-card-body"><p class="cafe-name">' + safeName + '</p><p class="cafe-description">' + description + '</p><p class="cafe-address"><span class="material-symbols-outlined">location_on</span>' + addr + '</p><div class="cafe-card-meta"><span class="cafe-rating"><span class="material-symbols-outlined">star</span>' + score + ' / 5</span><span class="cafe-meta-note">' + reviewCount + '</span></div>' + daySelHtml + '</div></article>';
   }).join('');
 }
 function addCafeToItinerary(cafeName, idx) {
@@ -829,9 +1066,9 @@ function renderPackingList() {
   if (trip.packing.length === 0) { list.innerHTML = '<div class="tip-strip"><span class="tip-icon">🎒</span><span>Your bag is empty! Type an item above and press <strong>Enter</strong> or <strong>+ Add</strong> to start your packing list.</span></div>'; return; }
   list.innerHTML = trip.packing.map(function(item) {
     return '<div class="pack-item ' + (item.checked ? 'checked' : '') + '">' +
-      '<div class="pack-check ' + (item.checked ? 'checked' : '') + '" onclick="togglePack(\'' + item.id + '\')">' + (item.checked ? 'âœ“' : '') + '</div>' +
+      '<div class="pack-check ' + (item.checked ? 'checked' : '') + '" onclick="togglePack(\'' + item.id + '\')">' + (item.checked ? '✓' : '') + '</div>' +
       '<span style="flex:1;font-size:0.88rem;">' + item.text + '</span>' +
-      '<button class="btn-icon btn-danger" onclick="deletePackItem(\'' + item.id + '\')" style="font-size:0.7rem;">âœ•</button></div>';
+      '<button class="btn-icon btn-danger" onclick="deletePackItem(\'' + item.id + '\')" style="font-size:0.7rem;">✕</button></div>';
   }).join('');
 }
 
@@ -858,63 +1095,20 @@ function showCloudStatus(msg) {
 
 // POST: Save a brand-new trip to the cloud and store the bin ID on the trip object
 async function saveTripToCloud(trip) {
-  setSyncBadge('syncing');
-  try {
-    var res = await fetch(JSONBIN_BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_KEY,
-        'X-Bin-Name': trip.name,
-        'X-Collection-Id': ''
-      },
-      body: JSON.stringify(trip)
-    });
-    if (!res.ok) throw new Error('Cloud save failed: ' + res.status);
-    var data = await res.json();
-    // Store the JSONBin bin ID on the trip so we can PUT updates later
-    trip.binId = data.metadata.id;
-    saveTrips();
-    setSyncBadge('synced');
-    return trip.binId;
-  } catch (err) {
-    setSyncBadge(null);
-    console.warn('Cloud save error (using local only):', err.message);
-    return null;
-  }
+  var savedTrip = await saveTripToBackend(trip);
+  return savedTrip ? savedTrip.id : null;
 }
 
 // PUT: Update an existing cloud bin with the latest trip state
 async function updateTripInCloud(trip) {
-  if (!trip || !trip.binId) return; // no cloud ID = never synced, skip
-  setSyncBadge('syncing');
-  try {
-    var res = await fetch(JSONBIN_BASE + '/' + trip.binId, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_KEY
-      },
-      body: JSON.stringify(trip)
-    });
-    if (!res.ok) throw new Error('Cloud update failed: ' + res.status);
-    await res.json();
-    setSyncBadge('synced');
-  } catch (err) {
-    setSyncBadge(null);
-    console.warn('Cloud update error (saved locally):', err.message);
-  }
+  return saveTripToBackend(trip);
 }
 
 // GET: Fetch a shared trip by its bin ID (called when someone opens a shared link)
 async function fetchTripFromCloud(binId) {
   try {
-    var res = await fetch(JSONBIN_BASE + '/' + binId + '/latest', {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
-    });
-    if (!res.ok) throw new Error('Not found: ' + res.status);
-    var data = await res.json();
-    return data.record; // The actual trip object
+    var result = await apiRequest('/trips/' + encodeURIComponent(binId));
+    return result.trip;
   } catch (err) {
     console.warn('Could not fetch shared trip:', err.message);
     return null;
@@ -925,7 +1119,7 @@ async function fetchTripFromCloud(binId) {
 var authMode = 'login';
 
 function initAuthState() {
-  if (localStorage.getItem('currentUser')) document.body.classList.remove('auth-locked');
+  if (localStorage.getItem('currentUser') && localStorage.getItem('authToken')) document.body.classList.remove('auth-locked');
   else document.body.classList.add('auth-locked');
 }
 
@@ -1012,7 +1206,7 @@ function authError(message) {
   error.classList.add('shake');
 }
 
-function submitAuth(event) {
+async function submitAuth(event) {
   event.preventDefault();
   var name = document.getElementById('auth-name').value.trim();
   var email = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1020,16 +1214,24 @@ function submitAuth(event) {
   if (authMode === 'signup' && name.length < 2) return authError('Add your name so your journal knows you.');
   if (!/^\S+@\S+\.\S+$/.test(email)) return authError('Please enter a valid email address.');
   if (password.length < 6) return authError('Password must be at least 6 characters.');
-  var users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (authMode === 'signup') {
-    if (users.some(function(user) { return user.email === email; })) return authError('That email already has a journal. Try logging in.');
-    users.push({ name: name, email: email, password: password }); // Demo only: localStorage is not secure storage.
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('currentUser', JSON.stringify({ name: name, email: email }));
-  } else {
-    var user = users.find(function(item) { return item.email === email && item.password === password; });
-    if (!user) return authError('Email or password did not match. Try again.');
-    localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
+  var submit = document.getElementById('auth-submit');
+  var endpoint = authMode === 'signup' ? '/auth/signup' : '/auth/login';
+  var payload = authMode === 'signup' ? { name: name, email: email, password: password } : { email: email, password: password };
+  submit.disabled = true;
+  try {
+    var response = await fetch(API_BASE + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var result = await response.json();
+    if (!response.ok) return authError(result.message || 'Authentication failed. Please try again.');
+    localStorage.setItem('authToken', result.token);
+    localStorage.setItem('currentUser', JSON.stringify(result.user));
+  } catch (error) {
+    return authError('Could not reach the backend. Make sure the server is running on port 5000.');
+  } finally {
+    submit.disabled = false;
   }
   closeAuth();
   document.body.classList.remove('auth-locked');
@@ -1039,6 +1241,7 @@ function submitAuth(event) {
 
 function logoutUser() {
   localStorage.removeItem('currentUser');
+  localStorage.removeItem('authToken');
   currentTripId = null;
   window.location.href = 'stage-1/index.html';
 }
@@ -1050,21 +1253,23 @@ async function initApp() {
   var urlParams = new URLSearchParams(window.location.search);
   var sharedBinId = urlParams.get('tripId'); // e.g. ?tripId=abc123
 
+  await loadTripsFromBackend();
+
   if (sharedBinId) {
     // User arrived via a shared link — fetch from cloud
     showToast('Loading shared trip... ☁️');
     var cloudTrip = await fetchTripFromCloud(sharedBinId);
     if (cloudTrip) {
       // Check if we already have this trip locally (avoid duplicates)
-      var existing = trips.find(function(t) { return t.binId === sharedBinId || t.id === cloudTrip.id; });
+      var existing = trips.find(function(t) { return t.id === cloudTrip.id; });
       if (!existing) {
         trips.unshift(cloudTrip);
-        saveTrips();
+        await saveTripToBackend(cloudTrip);
       } else {
         // Overwrite local copy with latest cloud version
         var idx = trips.indexOf(existing);
         trips[idx] = cloudTrip;
-        saveTrips();
+        await saveTripToBackend(cloudTrip);
       }
       currentTripId = cloudTrip.id;
       renderDashboard();
@@ -1077,10 +1282,7 @@ async function initApp() {
       showToast('Could not load shared trip. Check the link or your connection.');
       renderDashboard();
     }
-  } else {
-    // Normal page load
-    renderDashboard();
-  }
+  } else renderDashboard();
 }
 
 // ─── SHARE MODAL FUNCTIONS ────────────────────────────────────────────────────
@@ -1091,6 +1293,7 @@ async function openShareModal() {
   var linkInput = document.getElementById('share-link-input');
   var statusEl = document.getElementById('share-cloud-status');
 
+  trip.binId = trip.id;
   if (trip.binId) {
     // Already synced — just show the link
     var shareUrl = window.location.origin + window.location.pathname + '?tripId=' + trip.binId;

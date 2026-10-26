@@ -1,0 +1,58 @@
+  <!-- DASHBOARD PAGE -->
+  <div id="page-dashboard" class="page active">
+    <!-- Friend's travel-journal hero section -->
+    <section class="tnl-hero">
+      <div class="tnl-hero-copy">
+        <span class="tnl-eyebrow">✦ WANDER &bull; PLAN &bull; SHARE ✦</span>
+        <h1>Step Into a World<br><em>of Discoveries</em></h1>
+        <p class="tnl-hero-text">Your next adventure starts here. Plan the journey, split the expenses, and keep every memory together.</p>
+        <button class="tnl-explore-btn" onclick="openAuth('login')">ENTER YOUR JOURNAL <span class="material-symbols-outlined">arrow_forward</span></button>
+        <button class="tnl-auth-secondary" onclick="openAuth('signup')">Create a new account</button>
+      </div>
+      <div class="tnl-hero-art">
+        <div class="tnl-photo tnl-photo-main"><img src="https://images.unsplash.com/photo-1500534623283-312aade485b7?w=1100&q=85" alt="Travel landscape"></div>
+        <div class="tnl-photo tnl-photo-small"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=700&q=85" alt="Travel road"></div>
+        <div class="tnl-tape tnl-tape-main"></div><div class="tnl-stamp">TRAVEL<br>JOURNAL</div>
+        <span class="tnl-scribble tnl-scribble-one">✦</span><span class="tnl-scribble tnl-scribble-two">✈</span>
+      </div>
+    </section>
+    <div class="landing-sections">
+      <section class="lp-section lp-how reveal-on-scroll">
+        <span class="lp-kicker">THE EASY PART</span><h2>Everything your trip needs,<br><em>in one little place.</em></h2>
+        <div class="lp-steps">
+          <article class="lp-step"><span class="lp-step-no">01</span><span class="material-symbols-outlined">map</span><h3>Plan your trip</h3><p>Build the days, save the places, and give the group a plan worth following.</p></article>
+          <article class="lp-step"><span class="lp-step-no">02</span><span class="material-symbols-outlined">receipt_long</span><h3>Split fairly</h3><p>Track every receipt and let the maths stay quietly out of the holiday.</p></article>
+          <article class="lp-step"><span class="lp-step-no">03</span><span class="material-symbols-outlined">photo_camera</span><h3>Keep memories</h3><p>Turn the little details, votes, and favourite moments into a shared journal.</p></article>
+        </div>
+      </section>
+
+      <section class="lp-section lp-feature reveal-on-scroll"><div class="lp-feature-art lp-art-map"><span class="material-symbols-outlined">route</span><i>DAY 01</i><b>Paris &rarr; Montmartre</b></div><div class="lp-feature-copy"><span class="lp-kicker">01 / PLAN TOGETHER</span><h2>Your itinerary,<br><em>beautifully sorted.</em></h2><p>Keep the whole day in view &mdash; places to go, things to do, and the people coming along.</p></div></section>
+      <section class="lp-section lp-feature lp-feature-reverse reveal-on-scroll"><div class="lp-feature-art lp-art-receipt"><span class="material-symbols-outlined">payments</span><strong>&#8377; 1,240</strong><small>split between 4 friends</small><div class="lp-mini-bar"><i></i></div></div><div class="lp-feature-copy"><span class="lp-kicker">02 / SHARE THE MATHS</span><h2>No awkward maths,<br><em>just good times.</em></h2><p>See what was spent, who paid, and what each person owes at a glance.</p></div></section>
+      <section class="lp-section lp-feature reveal-on-scroll"><div class="lp-feature-art lp-art-cafe"><span class="material-symbols-outlined">local_cafe</span><b>Find a lovely corner</b><small>coffee &middot; bites &middot; memories</small></div><div class="lp-feature-copy"><span class="lp-kicker">03 / FIND YOUR SPOTS</span><h2>Make room for<br><em>happy accidents.</em></h2><p>Discover caf&eacute;s, places, and small detours that make the itinerary feel like yours.</p></div></section>
+
+      <section class="lp-stats reveal-on-scroll"><div><strong data-count="10000">0</strong><span>trips imagined</span></div><div><strong data-count="20000000">&#8377;0</strong><span>expenses shared</span></div><div><strong data-count="50000">0</strong><span>memories saved</span></div></section>
+      <section class="lp-section lp-quotes reveal-on-scroll"><span class="lp-kicker">POSTCARDS FROM THE GROUP CHAT</span><h2>A few words from<br><em>the happy travellers.</em></h2><div class="lp-quote-row"><blockquote>&ldquo;The receipts finally feel like part of the story instead of a chore.&rdquo;<cite>&mdash; Maya, Goa</cite></blockquote><blockquote>&ldquo;We planned a whole weekend from the train platform. It was perfect.&rdquo;<cite>&mdash; Arjun, Jaipur</cite></blockquote><blockquote>&ldquo;Small, warm, and exactly what our group needed.&rdquo;<cite>&mdash; Nia, Lisbon</cite></blockquote></div></section>
+      <section class="lp-final reveal-on-scroll"><span class="lp-route">&middot; &middot; &middot; ✈ &middot; &middot; &middot;</span><h2>Your next trip<br><em>starts here.</em></h2><p>Bring your people. We&rsquo;ll keep the details together.</p><button class="tnl-explore-btn" onclick="openAuth('signup')">CREATE YOUR JOURNAL <span class="material-symbols-outlined">arrow_forward</span></button></section>
+      <footer class="lp-footer"><strong>TripSplit</strong><span>Made for the trips you talk about forever.</span><div><a href="#">Journal</a><a href="#">Instagram</a><a href="#">Say hello</a></div></footer>
+    </div>
+    <div class="dashboard-hero">
+      <p class="dashboard-tagline">- sharing memories &amp; expenses since your last adventure -</p>
+    </div>
+    <div class="section-wrap">
+      <div class="section-row">
+        <h2 class="section-title" style="transform:rotate(-0.5deg)">Recent Journeys</h2>
+      </div>
+    </div>
+    <div class="trips-grid" id="trips-grid">
+      <div class="empty-state" id="empty-trips">
+        <span class="empty-icon">&#9992;&#65039;</span>
+        <p class="empty-title">No trips yet!</p>
+        <span class="empty-sub">Your travel journal is empty.<br />Create your first trip and start
+          tracking<br />memories, expenses &amp; itineraries.</span>
+        <button class="btn btn-primary" onclick="openModal('modal-new-trip')" style="transform:rotate(0.5deg);">&#43;
+          Create First Trip</button>
+      </div>
+    </div>
+  </div>
+
+

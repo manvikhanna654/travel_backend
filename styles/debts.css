@@ -1,0 +1,19 @@
+﻿/* DEBTS */
+.debt-card {
+  background: var(--surface);
+  border: 1.5px solid var(--outline-var);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.debt-card:hover {
+  transform: translateX(3px);
+  box-shadow: var(--shadow-card);
+}
+

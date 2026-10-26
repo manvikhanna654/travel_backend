@@ -1,0 +1,130 @@
+﻿/* ITINERARY */
+.day-block {
+  border-left: 2.5px solid var(--outline-var);
+  margin-left: 14px;
+  padding-left: 26px;
+  padding-bottom: 28px;
+  position: relative;
+  animation: fadeIn 0.35s ease both;
+}
+
+.day-dot {
+  position: absolute;
+  left: -12px;
+  top: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--secondary);
+  border: 3px solid var(--cream-dark);
+  box-shadow: 0 0 0 2px var(--secondary);
+  transition: transform var(--transition-fast);
+}
+
+.day-dot:hover {
+  transform: scale(1.2);
+}
+
+.day-heading {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 1.9rem;
+  margin-bottom: 12px;
+  color: var(--on-surface);
+}
+
+.activity-item {
+  background: var(--surface);
+  border: 1.5px solid var(--outline-var);
+  padding: 11px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 1px 2px 0 rgba(29, 28, 19, 0.12);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  animation: slideIn 0.25s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.activity-item:hover {
+  transform: translateX(3px);
+  box-shadow: 3px 4px 0 rgba(29, 28, 19, 0.15);
+}
+
+.activity-item.confirmed {
+  border-left: 4px solid var(--secondary);
+  background: rgba(214, 231, 161, 0.15);
+}
+
+.activity-item.maybe {
+  opacity: 0.6;
+}
+
+.activity-text {
+  flex: 1;
+  font-size: 0.88rem;
+}
+
+.vote-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.add-activity-form {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px dashed var(--outline);
+  padding: 14px;
+  margin-top: 10px;
+}
+
+/* CAFE CARDS */
+
+/* Journey diary refinement. */
+/* Journey Diary scrapbook refinement */
+#tab-itinerary > .section-row { align-items:center; margin-bottom:20px; }
+#tab-itinerary > .section-row .section-title { color:var(--primary); }
+#itinerary-timeline { padding:6px 4px 12px 12px; }
+#itinerary-timeline .day-block { margin:0 0 22px 16px; padding:24px 24px 22px 28px; border:1px solid rgba(140,74,45,.16); border-left:0; border-radius:18px; background:var(--surface); box-shadow:var(--shadow-card); }
+#itinerary-timeline .day-block:before { content:""; position:absolute; left:-2px; top:42px; bottom:-24px; border-left:2px dashed rgba(140,74,45,.32); }
+#itinerary-timeline .day-block:last-child:before { bottom:48%; }
+#itinerary-timeline .day-dot { left:-17px; top:30px; width:34px; height:34px; display:grid; place-items:center; border:4px solid var(--cream); background:var(--primary) !important; box-shadow:0 2px 0 rgba(64,53,44,.18); z-index:2; }
+#itinerary-timeline .day-dot span { color:var(--paper); font:700 .61rem 'Space Mono',monospace; }
+#itinerary-timeline .day-heading-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+#itinerary-timeline .day-heading { margin:0; color:var(--on-surface); font-size:1.75rem; }
+#itinerary-timeline .day-tape { position:absolute; top:-7px; left:32%; width:92px; height:22px; background:rgba(229,192,123,.75); transform:rotate(-3deg); z-index:1; }
+#itinerary-timeline .day-paperclip { position:absolute; top:11px; right:18px; color:var(--muted); font:1.8rem 'Caveat',cursive; transform:rotate(20deg); }
+#itinerary-timeline .day-delete, #itinerary-timeline .activity-remove { width:30px; height:30px; display:grid; place-items:center; border:1px solid rgba(140,74,45,.2); border-radius:50%; color:var(--muted); background:transparent; cursor:pointer; font-size:1.1rem; line-height:1; transition:color .2s,background .2s,transform .2s; }
+#itinerary-timeline .day-delete:hover, #itinerary-timeline .activity-remove:hover { color:#a33f37; background:#a33f3714; transform:scale(1.08); }
+#itinerary-timeline .activity-item { min-height:58px; margin-bottom:10px; padding:10px 12px; gap:10px; border:1px solid rgba(140,74,45,.14); border-radius:13px; background:#fffaf0; box-shadow:1px 2px 0 rgba(64,53,44,.08); }
+#itinerary-timeline .activity-item.confirmed { border-left:4px solid var(--secondary); background:#f1f3e8; }
+#itinerary-timeline .activity-icon { width:32px; height:32px; flex:0 0 32px; display:grid; place-items:center; border-radius:50%; color:var(--primary); background:rgba(229,192,123,.38); font-size:1rem; }
+#itinerary-timeline .activity-text { color:var(--on-surface); font-family:'Caveat',cursive; font-size:1.18rem; }
+#itinerary-timeline .confirmed-label { margin-left:6px; color:var(--secondary); font-size:.9rem; }
+#itinerary-timeline .activity-votes { display:flex; gap:5px; margin-left:auto; }
+#itinerary-timeline .vote-button { min-width:44px; padding:6px 8px; border:1px solid transparent; border-radius:999px; cursor:pointer; font:700 .72rem 'Space Mono',monospace; transition:transform .2s,filter .2s; }
+#itinerary-timeline .vote-button:hover { transform:translateY(-2px); filter:brightness(.96); }
+#itinerary-timeline .vote-up { color:#567248; background:#dfead7; border-color:#b6cda8; }
+#itinerary-timeline .vote-down { color:var(--primary); background:#f1ddd2; border-color:#dfbca9; }
+#itinerary-timeline .add-activity-form { margin-top:14px; padding:0; border:0; background:transparent; }
+#itinerary-timeline .add-activity-row { display:flex; align-items:center; gap:9px; }
+#itinerary-timeline .add-activity-form .journal-input { min-height:42px; padding:10px 13px; border:1px solid rgba(140,74,45,.25); border-radius:11px; background:#fffdf8; color:var(--on-surface); box-shadow:inset 0 1px 2px rgba(64,53,44,.04); font:italic .86rem 'Kalam',cursive; }
+#itinerary-timeline .add-activity-form .journal-input::placeholder { color:#9b8875; }
+#itinerary-timeline .add-activity-button { min-height:42px; padding:0 15px !important; border-radius:999px; color:var(--paper); background:var(--primary); box-shadow:3px 4px 0 rgba(92,45,24,.2); font-weight:700; }
+#itinerary-timeline .add-activity-button:hover { transform:translateY(-2px); }
+#itinerary-timeline .day-empty { margin:2px 0 14px; color:var(--on-surf-var); font:1.05rem 'Caveat',cursive; }
+@media(max-width:600px){#itinerary-timeline{padding-left:8px}#itinerary-timeline .day-block{margin-left:12px;padding:22px 14px 18px 22px}.day-heading-row{gap:6px}.day-heading{font-size:1.5rem !important}.activity-item{flex-wrap:wrap}.activity-votes{margin-left:42px!important}.add-activity-row{align-items:stretch!important;flex-direction:column}.add-activity-button{width:100%}}
+

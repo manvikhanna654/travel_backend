@@ -1,0 +1,94 @@
+﻿/* CAFE CARDS */
+.cafe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.cafe-card {
+  background: var(--surface);
+  border: 1.5px solid var(--outline-var);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cafe-card::after {
+  content: '\2615';
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 1.5rem;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.cafe-card:hover {
+  transform: translateY(-4px) rotate(-0.3deg);
+  box-shadow: var(--shadow-card);
+}
+
+.cafe-name {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 1.35rem;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.cafe-address {
+  font-size: 0.72rem;
+  color: var(--on-surf-var);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.cafe-rating {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--mustard);
+  font-weight: 700;
+}
+
+/* =====================================================
+   CAFE SEARCH + VISUAL RESULT CARDS
+   ===================================================== */
+#tab-cafes { min-width: 0; overflow: hidden; }
+.cafe-search-row { width:100%; max-width:100%; box-sizing:border-box; flex-wrap:wrap; align-items:flex-end; }
+.cafe-search-row > div { min-width:0; flex:1 1 260px !important; }
+.cafe-search-row input { width:100%; max-width:100%; box-sizing:border-box; border:1px solid rgba(140,74,45,.24); border-radius:var(--radius-sm); padding:11px 14px; background:#fffdf7; transform:none; box-shadow:none; }
+.cafe-search-row input:focus { border-color:#c77936; box-shadow:0 0 0 3px rgba(199,121,54,.14); outline:none; }
+.cafe-search-row > button { flex:0 0 auto; min-height:42px; }
+.cafe-source-note { margin:-10px 0 18px; color:#a08d7c; font:.56rem 'Space Mono',monospace; }
+.cafe-grid { width:100%; min-width:0; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:20px; align-items:stretch; }
+.cafe-card { min-width:0; overflow:hidden; padding:0; border:1px solid rgba(140,74,45,.15); border-radius:16px; background:#fffdf7; box-shadow:var(--shadow-soft); transform:none !important; transition:transform .25s ease,box-shadow .25s ease; }
+.cafe-card:hover { transform:translateY(-5px) !important; box-shadow:var(--shadow-card-polish); }
+.cafe-card::after { display:none; }
+.cafe-photo-wrap { position:relative; height:155px; overflow:hidden; background:#e9dfcb; }
+.cafe-photo { display:block; width:100%; height:100%; object-fit:cover; transition:transform .4s ease; }
+.cafe-photo-placeholder { display:grid; place-items:center; color:#b4865f; background:linear-gradient(145deg,#f2e5cf,#e5c89d); }
+.cafe-photo-placeholder .material-symbols-outlined { font-size:3rem; opacity:.62; }
+.cafe-card:hover .cafe-photo { transform:scale(1.05); }
+.cafe-photo-wrap::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(37,29,20,.02),rgba(37,29,20,.28)); pointer-events:none; }
+.cafe-photo-tag { position:absolute; z-index:1; left:12px; top:12px; padding:6px 9px; border-radius:999px; background:rgba(255,249,235,.9); color:#785437; font:700 .58rem 'Space Mono',monospace; box-shadow:2px 3px 0 rgba(77,55,38,.13); }
+.cafe-card-body { padding:16px; }
+.cafe-name { margin-bottom:6px; font:700 1.45rem/1 'Caveat',cursive; color:var(--primary); }
+.cafe-description { min-height:34px; margin:0 0 10px; color:#796657; font:.7rem/1.45 'Kalam',cursive; }
+.cafe-address { display:flex; align-items:flex-start; gap:5px; min-height:34px; margin-bottom:10px; color:#857468; font:.66rem/1.45 'Space Mono',monospace; }
+.cafe-address .material-symbols-outlined { flex:0 0 auto; color:#b46e45; font-size:.9rem; }
+.cafe-card-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:13px; }
+.cafe-rating { display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border-radius:9px; background:#f8ebc5; color:#85611d; font:700 .68rem 'Space Mono',monospace; }
+.cafe-rating .material-symbols-outlined { color:#d19a32; font-size:.9rem; }
+.cafe-meta-note { color:#a08d7c; font:.58rem 'Space Mono',monospace; }
+.cafe-checkin { display:flex; flex-direction:column; gap:7px; padding-top:12px; border-top:1px dashed rgba(140,74,45,.18); }
+.cafe-checkin label { color:#8b7563; font:700 .56rem 'Space Mono',monospace; letter-spacing:.08em; }
+.cafe-checkin select { width:100%; box-sizing:border-box; min-height:36px; margin:0 !important; padding:7px 10px !important; border:1px solid rgba(140,74,45,.2) !important; border-radius:9px !important; background:#fffaf0 !important; transform:none !important; font:.65rem 'Space Mono',monospace !important; }
+.cafe-add-btn { width:100%; min-height:36px; padding:8px 10px !important; border:0 !important; border-radius:9px !important; background:var(--secondary) !important; color:#fff !important; box-shadow:2px 3px 0 rgba(86,100,43,.2); }
+.cafe-no-day { margin-top:13px; padding:10px; border-radius:9px; background:#f5eddf; color:#8b7563; font:.62rem/1.4 'Space Mono',monospace; text-align:center; }
+.cafe-empty { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:54px 20px; border:1px dashed rgba(140,74,45,.25); border-radius:16px; background:rgba(255,249,235,.65); color:#8b7563; text-align:center; }.cafe-empty .material-symbols-outlined { color:#c77936; font-size:2.2rem; }.cafe-empty strong { color:var(--primary); font:700 1.5rem 'Caveat',cursive; }.cafe-empty p { font:.68rem 'Space Mono',monospace; }
+.cafe-skeleton-grid { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:20px; }.cafe-skeleton { height:310px; border-radius:16px; background:linear-gradient(90deg,#eee4d1 25%,#f8f0e2 37%,#eee4d1 63%); background-size:400% 100%; animation:cafe-shimmer 1.4s ease infinite; }
+@keyframes cafe-shimmer { 0% { background-position:100% 0; } 100% { background-position:-100% 0; } }
+@media (max-width:560px) { .cafe-search-row > button { width:100%; }.cafe-photo-wrap { height:170px; } }
+

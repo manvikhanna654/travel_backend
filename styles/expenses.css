@@ -1,0 +1,464 @@
+﻿/* EXPENSES */
+.expense-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+
+@media (max-width: 720px) {
+  .expense-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.budget-bar-bg {
+  height: 16px;
+  background: var(--surface-high);
+  border: 1.5px solid var(--outline-var);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.budget-bar-fill.over {
+  background: linear-gradient(90deg, var(--error), #D44);
+}
+
+.receipts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* EXACT REPLICA â€” SPENDING BREAKDOWN CARD & LEGEND (Compact Height) */
+.spending-breakdown-card {
+  background: #FAF5E9;
+  background-image: repeating-linear-gradient(0deg, rgba(134, 115, 108, 0.08) 0px, rgba(134, 115, 108, 0.08) 1px, transparent 1px, transparent 24px);
+  border: 1.5px solid var(--outline-var);
+  border-radius: 4px;
+  padding: 20px 22px 16px;
+  box-shadow: 4px 6px 0 rgba(29, 28, 19, 0.16), 0 4px 20px rgba(29, 28, 19, 0.07);
+  position: relative;
+  overflow: visible;
+}
+
+/* Top-Right Polaroid Photo */
+.breakdown-polaroid {
+  position: absolute;
+  top: -12px;
+  right: 14px;
+  background: #fff;
+  padding: 5px 5px 14px 5px;
+  border-radius: 2px;
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  transform: rotate(5.5deg);
+  width: 75px;
+  text-align: center;
+  z-index: 10;
+  transition: transform 0.2s ease;
+}
+
+.breakdown-polaroid:hover {
+  transform: rotate(2deg) scale(1.05);
+}
+
+.breakdown-polaroid img {
+  width: 100%;
+  height: 56px;
+  object-fit: cover;
+  display: block;
+  border-radius: 1px;
+}
+
+.breakdown-polaroid-caption {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 0.65rem;
+  color: #333;
+  margin-top: 3px;
+  display: block;
+  line-height: 1.1;
+}
+
+/* Header & Wavy Underline */
+.breakdown-header {
+  margin-bottom: 12px;
+  padding-right: 68px;
+  /* clear space for polaroid */
+}
+
+.breakdown-title {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 1.85rem;
+  color: #2D231F;
+  line-height: 1.05;
+  font-weight: 700;
+  margin: 0;
+  transform: rotate(-1deg);
+}
+
+.wavy-underline {
+  width: 130px;
+  height: 8px;
+  margin-top: 3px;
+  display: block;
+}
+
+/* Donut Chart & Sticker (Shorter 160x160) */
+.chart-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 4px auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-center-sticker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #FFFDF7;
+  border: 1.5px dashed #D9C2B9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(29, 28, 19, 0.08);
+  pointer-events: none;
+  text-align: center;
+  padding: 4px;
+  z-index: 5;
+}
+
+.chart-center-sticker .center-label {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 0.82rem;
+  color: #86736C;
+  font-style: italic;
+  line-height: 1;
+}
+
+.chart-center-sticker .center-val {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2D231F;
+  line-height: 1.1;
+  margin-top: 1px;
+  font-style: italic;
+}
+
+/* Legend Box (Compact) */
+.receipt-legend-box {
+  background: #F5EAD4;
+  border: 1.5px dashed #D4C2A5;
+  border-radius: 6px;
+  padding: 10px 14px;
+  transform: rotate(-0.35deg);
+  box-shadow: 2px 2px 0 rgba(29, 28, 19, 0.05);
+}
+
+.legend-box-header {
+  text-align: center;
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 0.85rem;
+  color: #86736C;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  font-style: italic;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.legend-row:last-child {
+  margin-bottom: 0;
+}
+
+.legend-row:hover {
+  background: rgba(200, 90, 68, 0.12);
+  transform: translateX(2px);
+}
+
+.legend-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 1.05rem;
+  color: #2D231F;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 1px 1px 0 rgba(29, 28, 19, 0.25);
+  transform: rotate(-4deg);
+}
+
+.legend-dots {
+  flex: 1;
+  border-bottom: 1.5px dotted #C9B89D;
+  margin: 0 8px;
+  height: 1px;
+  opacity: 0.75;
+}
+
+.legend-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-amount {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2D231F;
+  font-style: italic;
+}
+
+.legend-pct {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 0.88rem;
+  color: #7A6B63;
+  font-style: italic;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Total row inside legend box */
+.legend-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 6px 2px 6px;
+  margin-top: 4px;
+  border-top: 1.5px dotted #C9B89D;
+}
+
+.legend-total-label {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #2D231F;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.legend-total-val {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2D231F;
+  font-style: italic;
+}
+
+/* Hover hint below legend box */
+.chart-hover-hint {
+  font-family: 'Caveat', 'Kalam', cursive;
+  font-size: 0.82rem;
+  color: #86736C;
+  font-style: italic;
+  text-align: right;
+  margin-top: 6px;
+  opacity: 0.8;
+}
+
+/* Bottom Left Washi Tape */
+.breakdown-washi {
+  position: absolute;
+  bottom: -8px;
+  left: 16px;
+  width: 75px;
+  height: 18px;
+  z-index: 10;
+}
+
+/* CUTE MEMORY CARD (Fills empty space in right column) */
+.cute-memory-card {
+  margin-top: 18px;
+  background: #FFFDF5;
+  border: 1.5px solid var(--outline-var);
+  border-radius: 6px;
+  padding: 14px 16px;
+  position: relative;
+  box-shadow: 3px 4px 0 rgba(29, 28, 19, 0.12);
+  transform: rotate(0.8deg);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: visible;
+}
+
+.cute-memory-card:hover {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: 5px 7px 0 rgba(29, 28, 19, 0.18);
+}
+
+.memory-washi {
+  top: -8px;
+  right: 20px;
+  width: 65px;
+  height: 18px;
+}
+
+.cute-memory-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cute-polaroid-frame {
+  background: #fff;
+  padding: 4px 4px 12px 4px;
+  border-radius: 2px;
+  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.12);
+  transform: rotate(-3deg);
+  width: 90px;
+  flex-shrink: 0;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.cute-polaroid-frame:hover {
+  transform: rotate(0deg) scale(1.04);
+}
+
+.cute-polaroid-frame img {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+  display: block;
+  border-radius: 1px;
+}
+
+.cute-polaroid-caption {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 0.72rem;
+  color: #333;
+  margin-top: 3px;
+  display: block;
+  line-height: 1.1;
+}
+
+.cute-memory-text {
+  flex: 1;
+}
+
+.cute-stamp-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: #8C4A2D;
+  background: rgba(140, 74, 45, 0.08);
+  border: 1px dashed #8C4A2D;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  transform: rotate(-1deg);
+}
+
+.cute-memory-quote {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 1.18rem;
+  color: #2D231F;
+  margin: 2px 0 2px 0;
+  line-height: 1.15;
+}
+
+.cute-memory-sub {
+  font-family: 'Caveat', cursive;
+  font-size: 0.92rem;
+  color: #7A6B63;
+  font-style: italic;
+  margin: 0;
+}
+
+/* RECEIPTS EMPTY BOX â€” journal page feel, warm not sage */
+.receipts-empty-box {
+  background: rgba(255, 249, 235, 0.82);
+  border: 2px dashed var(--outline-var);
+  border-radius: 5px;
+  padding: 52px 32px;
+  text-align: center;
+  position: relative;
+  box-shadow: inset 0 2px 12px rgba(134, 115, 108, 0.07);
+}
+
+.receipts-empty-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(134, 115, 108, 0.05) 1px, transparent 1px);
+  background-size: 100% 30px;
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.receipts-empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 14px;
+  animation: float 3.5s ease-in-out infinite;
+  line-height: 1;
+}
+
+.receipts-empty-title {
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-size: 1.65rem;
+  color: var(--primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.receipts-empty-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--on-surf-var);
+  line-height: 1.95;
+}
+
+.budget-bar-bg { height:12px; margin-top:8px; overflow:hidden; border:0; border-radius:999px; background:#ebe2d0; box-shadow:inset 0 1px 3px rgba(77,55,38,.12); }.budget-bar-fill { border-radius:inherit; background:linear-gradient(90deg,#789b68,#a4b962); }.budget-bar-fill.warning { background:linear-gradient(90deg,#cfab57,#d17f45); }.budget-bar-fill.over { background:linear-gradient(90deg,#c87956,#af4544); }
+.receipts-list { gap:12px; max-height:620px; overflow-y:auto; padding:3px 6px 8px 2px; scrollbar-width:thin; }.receipt-slip { min-height:100px; box-sizing:border-box; padding:16px 18px 15px; clip-path:none; border:1px solid rgba(134,115,108,.18); border-left:4px solid #d5a875; border-radius:var(--radius-card); background:#fffdf7; box-shadow:var(--shadow-soft); transform:none !important; transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease; }.receipt-slip:hover { transform:translateY(-3px) !important; border-color:rgba(140,74,45,.28); box-shadow:var(--shadow-card-polish); }.receipt-desc { font-family:'Space Mono',monospace; font-size:.8rem; font-weight:700; color:#45372e; }.receipt-meta { font-family:'Space Mono',monospace; font-size:.62rem; color:#8d7b6c; }.receipt-amount { font-family:'Space Mono',monospace; font-size:1rem; font-weight:700; color:var(--primary); }
+.receipt-upload-input { padding:8px; font-size:.72rem; }
+.receipt-file-link { display:inline-block; margin:8px 0 12px; color:var(--primary); font:700 .68rem 'Space Mono',monospace; text-decoration:none; }
+.receipt-file-link:hover { text-decoration:underline; }
+.receipts-empty-box { border:1px dashed rgba(140,74,45,.28); border-radius:var(--radius-card); background:rgba(255,249,235,.68); box-shadow:var(--shadow-soft); }
+.spending-breakdown-card { position:relative; min-height:0; box-sizing:border-box; padding:var(--space-3); border:1px solid rgba(140,74,45,.16); border-radius:var(--radius-panel); background:#fbf5e9; background-image:linear-gradient(135deg,rgba(255,255,255,.42),transparent 48%); box-shadow:var(--shadow-card-polish); }.breakdown-header { padding-right:86px; margin-bottom:16px; }.breakdown-title { font-size:2.1rem; line-height:.9; }.breakdown-polaroid { top:18px; right:18px; box-shadow:4px 5px 0 rgba(77,55,38,.14); }.chart-wrap { margin:4px auto 18px; }.receipt-legend-box { border:1px solid rgba(140,74,45,.16); border-radius:var(--radius-card); background:rgba(255,249,235,.72); box-shadow:none; }.legend-box-header { padding:11px 14px; font:700 .6rem 'Space Mono',monospace; }.legend-total-row { border-top:1px solid rgba(140,74,45,.14); }.chart-hover-hint { margin-top:14px; font-family:'Space Mono',monospace; font-size:.58rem; }
+/* Restore the original torn-paper receipt silhouette. */
+.receipt-slip {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 93%, 97% 100%, 94% 93%, 91% 100%, 88% 93%, 85% 100%, 82% 93%, 79% 100%, 76% 93%, 73% 100%, 70% 93%, 67% 100%, 64% 93%, 61% 100%, 58% 93%, 55% 100%, 52% 93%, 49% 100%, 46% 93%, 43% 100%, 40% 93%, 37% 100%, 34% 93%, 31% 100%, 28% 93%, 25% 100%, 22% 93%, 19% 100%, 16% 93%, 13% 100%, 10% 93%, 7% 100%, 4% 93%, 1% 100%, 0% 93%);
+  border-radius: 0;
+  padding-bottom: 34px;
+}
+
+/* Larger receipt lettering for comfortable reading. */
+.receipt-slip .receipt-desc { font-size: 1rem; line-height: 1.35; font-weight: 700; }
+.receipt-slip .receipt-meta { font-size: .72rem; line-height: 1.5; }
+.receipt-slip .receipt-amount { font-size: 1.15rem; }
+.receipt-slip .btn-icon { font-size: .72rem !important; }

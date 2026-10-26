@@ -1,0 +1,149 @@
+  <!-- NEW TRIP MODAL -->
+  <div class="modal-overlay" id="modal-new-trip">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modal-new-trip')">&#10005;</button>
+      <span class="modal-title">New Journey ✈️</span>
+      <div class="form-row"><label class="input-label">TRIP NAME</label><input id="trip-name-input"
+          class="journal-input" type="text" placeholder="Ski Trip, Bali Getaway..." /></div>
+      <div class="form-row"><label class="input-label">DESTINATION</label><input id="trip-dest-input"
+          class="journal-input" type="text" placeholder="Manali, Tokyo, Santorini..." /></div>
+      <div class="form-grid">
+        <div class="form-row"><label class="input-label">START DATE</label><input id="trip-start-input"
+            class="journal-input" type="date" /></div>
+        <div class="form-row"><label class="input-label">END DATE</label><input id="trip-end-input"
+            class="journal-input" type="date" /></div>
+      </div>
+      <div class="form-row"><label class="input-label">BUDGET &#8377; (optional)</label><input id="trip-budget-input"
+          class="journal-input" type="number" placeholder="10000" min="0" /></div>
+      <div class="form-row">
+        <label class="input-label">TRAVELERS (press Enter after each name)</label>
+        <input id="traveler-input" class="journal-input" type="text" placeholder="Alex, Sam..."
+          onkeydown="handleTravelerInput(event)" />
+        <div id="traveler-chips" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-new-trip')">Cancel</button>
+        <button class="btn btn-primary" onclick="createTrip()">Create Trip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD EXPENSE MODAL -->
+  <div class="modal-overlay" id="modal-add-expense">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modal-add-expense')">&#10005;</button>
+      <span class="modal-title">Add Expense 💸</span>
+      <div class="form-row"><label class="input-label">DESCRIPTION</label><input id="exp-desc-input"
+          class="journal-input" type="text" placeholder="Dinner at Luigi's, Train tickets..." /></div>
+      <div class="form-grid">
+        <div class="form-row"><label class="input-label">AMOUNT (&#8377;)</label><input id="exp-amount-input"
+            class="journal-input" type="number" placeholder="450.00" min="0" step="0.01" /></div>
+        <div class="form-row"><label class="input-label">CATEGORY</label>
+          <select id="exp-category-input" class="journal-input">
+            <option value="food">🍟 Food</option>
+            <option value="stay">🏠 Stay</option>
+            <option value="transport">🚆 Transport</option>
+            <option value="activities">🎭 Activities</option>
+            <option value="misc">📌 Misc</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label class="input-label">PAID BY</label><select id="exp-paidby-input"
+          class="journal-input"></select></div>
+      <div class="form-row"><label class="input-label">SPLIT BETWEEN</label>
+        <div id="exp-split-checks" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;"></div>
+      </div>
+      <div class="form-row"><label class="input-label" for="exp-receipt-input">RECEIPT <span style="font-weight:400;opacity:.65;">(optional, max 5 MB)</span></label>
+        <input id="exp-receipt-input" class="journal-input receipt-upload-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" />
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-expense')">Cancel</button>
+        <button class="btn btn-primary" onclick="addExpense()">Add Expense</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD DAY MODAL -->
+  <div class="modal-overlay" id="modal-add-day">
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close" onclick="closeModal('modal-add-day')">&#10005;</button>
+      <span class="modal-title">Add Day 📔</span>
+      <div class="form-row"><label class="input-label">DAY LABEL</label><input id="day-label-input"
+          class="journal-input" type="text" placeholder="Day 1 - Arrival, Day 2 - Manali..." /></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-day')">Cancel</button>
+        <button class="btn btn-primary" onclick="addDay()">Add Day</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE POLL MODAL -->
+  <div class="modal-overlay" id="modal-create-poll">
+    <div class="modal" style="max-width:520px;">
+      <button class="modal-close" onclick="closeModal('modal-create-poll')">&#10005;</button>
+      <span class="modal-title">New Group Poll 🗳️</span>
+      <p style="font-size:0.82rem;color:var(--on-surf-var);margin-bottom:14px;">Ask your group to vote on dinner spots, activities, or anything on the itinerary!</p>
+      <div class="form-row">
+        <label class="input-label">POLL QUESTION</label>
+        <input id="poll-question-input" class="journal-input" type="text" placeholder="Where should we have dinner tonight? 🍽" />
+      </div>
+      <div class="form-row">
+        <label class="input-label">POLL OPTIONS (min. 2)</label>
+        <div id="poll-options-wrap">
+          <div class="poll-option-row">
+            <input class="journal-input poll-opt-emoji" type="text" value="🍕" maxlength="2" title="Emoji" />
+            <input class="journal-input poll-option-input" type="text" placeholder="Option title (e.g. Luigi's Trattoria)" />
+            <input class="journal-input poll-option-sub" type="text" placeholder="Short note (e.g. Cozy Italian near piazza)" />
+            <button class="poll-opt-remove" onclick="removePollOptionRow(this)">&#10005;</button>
+          </div>
+          <div class="poll-option-row">
+            <input class="journal-input poll-opt-emoji" type="text" value="🍜" maxlength="2" title="Emoji" />
+            <input class="journal-input poll-option-input" type="text" placeholder="Option title (e.g. Noodle House)" />
+            <input class="journal-input poll-option-sub" type="text" placeholder="Short note (e.g. Late-night ramen spot)" />
+            <button class="poll-opt-remove" onclick="removePollOptionRow(this)">&#10005;</button>
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="addPollOptionRow()" style="margin-top:8px;font-size:0.75rem;padding:6px 12px;">+ Add Another Option</button>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-create-poll')">Cancel</button>
+        <button class="btn btn-primary" onclick="createPoll()">Launch Poll ✌️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARE TRIP MODAL -->
+  <div class="modal-overlay" id="modal-share-trip">
+    <div class="modal" style="max-width:480px;">
+      <button class="modal-close" onclick="closeModal('modal-share-trip')">&#10005;</button>
+      <span class="modal-title">Share Trip 🔗</span>
+      <p style="font-size:0.85rem;color:var(--on-surface-variant);margin-bottom:18px;line-height:1.6;"
+        >Send this link to your travel buddies. Anyone who opens it can view the trip and add their own expenses, itinerary items, and packing list items!</p>
+      <div class="form-row">
+        <label class="input-label">SHARE LINK</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="share-link-input" class="journal-input share-link-box" type="text" readonly
+            placeholder="Generating link..." onclick="this.select()" />
+          <button class="btn btn-primary" id="copy-btn" onclick="copyShareLink()" style="white-space:nowrap;padding:10px 14px;font-size:0.8rem;">
+            <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">content_copy</span> Copy
+          </button>
+        </div>
+      </div>
+      <div id="share-cloud-status" style="margin-top:12px;font-size:0.82rem;color:var(--on-surface-variant);min-height:20px;"></div>
+      <div class="share-tip-box">
+        <span style="font-size:1.1rem;">💡</span>
+        <div>
+          <strong>How it works:</strong>
+          <ul style="margin:6px 0 0 16px;padding:0;font-size:0.8rem;line-height:1.8;">
+            <li>Trip is saved to a shared cloud database</li>
+            <li>Friends open the link &rarr; trip loads automatically</li>
+            <li>They can add their name &amp; log expenses / activities</li>
+            <li>All changes sync to the cloud for everyone</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-share-trip')">Done</button>
+      </div>
+    </div>
+  </div>

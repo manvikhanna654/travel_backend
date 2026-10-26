@@ -1,0 +1,26 @@
+  <!-- MOBILE MENU -->
+  <div id="mobile-menu" style="display:none;position:fixed;inset:0;z-index:150;background:rgba(29,28,19,0.6);"
+    onclick="toggleMobileMenu()">
+    <div
+      style="position:absolute;top:60px;right:16px;background:var(--cream);border:1px solid var(--outline);box-shadow:4px 4px 0 rgba(29,28,19,0.4);padding:16px;min-width:170px;"
+      onclick="event.stopPropagation()">
+      <button class="nav-link" style="display:block;width:100%;text-align:left;padding:10px 8px;"
+        onclick="showPage('dashboard');toggleMobileMenu()">✈️ Journals</button>
+      <button class="nav-link" style="display:block;width:100%;text-align:left;padding:10px 8px;"
+        onclick="if(currentTripId){showPage('trip');}toggleMobileMenu()">💸 Current Trip</button>
+      <button class="nav-link" style="display:block;width:100%;text-align:left;padding:10px 8px;"
+        onclick="openModal('modal-new-trip');toggleMobileMenu()">+ New Trip</button>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav id="mobile-nav">
+    <button class="mobile-nav-btn active" onclick="showPage('dashboard')"><span
+        class="material-symbols-outlined">auto_stories</span><span>Journals</span></button>
+    <button class="mobile-nav-btn" onclick="openModal('modal-new-trip')"><span
+        class="material-symbols-outlined">add_circle</span><span>New</span></button>
+    <button class="mobile-nav-btn" onclick="if(currentTripId)showPage('trip')"><span
+        class="material-symbols-outlined">receipt_long</span><span>Expenses</span></button>
+  </nav>
+
+  <div id="toast"></div>

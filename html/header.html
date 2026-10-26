@@ -1,0 +1,16 @@
+﻿  <!-- HEADER -->
+  <header>
+    <div class="header-brand">
+      <span class="app-title" onclick="showPage('dashboard')">TripSplit</span>
+      <nav class="header-nav">
+        <button class="nav-link active" onclick="showPage('dashboard')" id="nav-dashboard">Journals</button>
+        <button class="nav-link" onclick="if(currentTripId)showPage('trip')" id="nav-trip">Plan &amp; Expenses</button>
+      </nav>
+    </div>
+    <div class="header-actions">
+      <button class="menu-btn" onclick="toggleMobileMenu()"><span class="material-symbols-outlined">menu</span></button>
+      <button class="auth-logout" onclick="logoutUser()"><span class="material-symbols-outlined">logout</span> Log out</button>
+      <button class="btn-stamp" onclick="openModal('modal-new-trip')"><span class="material-symbols-outlined"
+          style="font-size:1rem;">add</span> New Trip</button>
+    </div>
+  </header>

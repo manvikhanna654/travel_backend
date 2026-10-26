@@ -39,10 +39,10 @@ TripSplit is a responsive, scrapbook-style travel planner for groups. It helps f
 
 ## Getting started
 
-TripSplit has no build process or package installation. It is a static front-end project.
+TripSplit has no build process or package installation. It is a static front-end project whose page sections are loaded as HTML feature partials.
 
 1. Download or clone this project.
-2. Open `index.html` in a modern web browser.
+2. Run the folder through a local static server such as VS Code Live Server. The feature partials are loaded with `fetch`, so direct `file://` opening is not supported for the reorganised app shell.
 3. Select **New Trip**, enter your trip details, and add at least one traveller.
 4. Use the tabs in the trip screen to manage expenses, itinerary, cafes, packing, and settlements.
 
@@ -52,9 +52,19 @@ For best results, run it through a local static server such as VS Code Live Serv
 
 ```text
 travel/
-|-- index.html   # App markup, pages, tabs, and modal forms
-|-- styles.css   # Responsive scrapbook-inspired design and print styles
+|-- index.html   # App shell and shared document metadata
+|-- app-shell.js # Loads the HTML feature partials before app.js
+|-- html/        # Auth, header, dashboard, trip, modal, and navigation markup
+|-- styles/      # Feature-specific CSS entry files
+|-- styles.css   # Shared design system and legacy component styles
 |-- app.js       # App state, rendering, calculations, and event handlers
+|-- server/      # Express backend with auth, trips, and expenses API
+|   |-- server.js
+|   |-- models/
+|   |-- routes/
+|   |-- middleware/
+|   |-- .env.example
+|   `-- package.json
 `-- README.md    # Project documentation
 ```
 
@@ -72,18 +82,13 @@ travel/
 
 ## How data is stored
 
-TripSplit does not use a database, account system, or backend. All trip information is stored in the browser's `localStorage` under the key `ts_trips`.
+The Express backend stores users and complete trip documents in the local MongoDB database named `tripsplit`. A trip document includes its metadata, travelers, expenses, itinerary, cafes, packing list, polls, and settlement data.
 
-This means:
-
-- Your data stays in the browser on the current device.
-- Trips are available after refreshes in the same browser.
-- Data is not shared automatically with other people or devices.
-- Clearing site data, browser storage, or using a different browser removes access to the saved trips.
+The browser stores only the current user summary and JWT session token in `localStorage`. Existing `ts_trips` data is migrated to MongoDB when the authenticated app loads.
 
 ## Cafe search configuration
 
-Cafe search calls the Foursquare Places API from `app.js`. The current project includes a client-side API key for demonstration. Before publishing the app, use your own Foursquare key and keep it out of client-side code by moving the request to a secure backend or serverless function.
+Cafe search still calls the Foursquare Places API from `app.js`. Before publishing the app, move that request to the Express backend so the API key is not exposed to browsers.
 
 If the API request fails, TripSplit automatically displays sample cafes instead of showing an error.
 

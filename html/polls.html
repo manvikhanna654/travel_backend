@@ -1,0 +1,20 @@
+    <!-- POLLS TAB -->
+    <div class="tab-panel" id="tab-polls">
+      <div class="section-row" style="margin-bottom:6px;align-items:flex-start;">
+        <div>
+          <h3 class="section-title" style="font-size:1.6rem;margin:0;transform:rotate(-0.5deg)">Active Polls 🗳️</h3>
+          <p style="font-family:'Caveat',cursive;font-size:1.1rem;color:var(--on-surf-var);margin-top:2px;">Vote on everything, argue about nothing ✌️</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-create-poll')" style="font-size:0.82rem;padding:9px 16px;box-shadow:3px 3px 0 rgba(29,28,19,0.35);">+ Create Poll</button>
+      </div>
+      <div id="polls-trip-badges" class="polls-badges-bar"></div>
+      <div id="polls-list">
+        <div class="polls-empty">
+          <span style="font-size:3.5rem;">🗳️</span>
+          <p style="font-family:'Caveat',cursive;font-size:1.8rem;color:var(--primary);margin-top:8px;">No polls yet!</p>
+          <p style="font-size:0.9rem;color:var(--on-surf-var);">Create your first poll and let the group decide together!</p>
+          <button class="btn btn-primary" onclick="openModal('modal-create-poll')" style="margin-top:14px;">+ Launch First Poll</button>
+        </div>
+      </div>
+    </div>
+

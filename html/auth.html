@@ -1,0 +1,18 @@
+  <div class="auth-modal" id="auth-modal" aria-hidden="true">
+    <div class="auth-backdrop" onclick="closeAuth()"></div>
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button class="auth-close" onclick="closeAuth()" aria-label="Close">&#10005;</button>
+      <span class="auth-dialog-kicker">YOUR TRAVEL JOURNAL</span>
+      <h2 id="auth-title">Welcome back.</h2>
+      <p class="auth-subtitle" id="auth-subtitle">Log in to pick up where you left off.</p>
+      <div class="auth-switcher"><button id="auth-login-tab" class="active" onclick="setAuthMode('login')">Log in</button><button id="auth-signup-tab" onclick="setAuthMode('signup')">Sign up</button></div>
+      <form id="auth-form" onsubmit="submitAuth(event)">
+        <label class="auth-field auth-name-field"><span>Name</span><input id="auth-name" type="text" autocomplete="name" placeholder="Your name" /></label>
+        <label class="auth-field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+        <label class="auth-field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" placeholder="At least 6 characters" /></label>
+        <p class="auth-error" id="auth-error" role="alert"></p>
+        <button class="auth-submit" type="submit" id="auth-submit">Log in <span class="material-symbols-outlined">arrow_forward</span></button>
+      </form>
+      <small class="auth-note">Local demo only &mdash; your account stays in this browser.</small>
+    </div>
+  </div>

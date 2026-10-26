@@ -1,0 +1,60 @@
+  <!-- TRIP DETAIL PAGE -->
+  <div id="page-trip" class="page">
+    <button class="back-btn" onclick="showPage('dashboard')"><span class="material-symbols-outlined"
+        style="font-size:1rem;">arrow_back</span> All Trips</button>
+    <div class="trip-sidebar">
+      <div class="sidebar-trip-mark"><span class="sidebar-trip-icon"><span class="material-symbols-outlined">luggage</span></span><div><span class="sidebar-eyebrow">YOUR JOURNEY</span><strong id="sidebar-trip-title">Trip Name</strong></div></div>
+      <div class="sidebar-divider"><span>TRIP MENU</span></div>
+      <nav class="trip-tabs sidebar-nav" aria-label="Trip navigation">
+        <button class="trip-tab active" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon nav-icon-green">&#128184;</span><span>Expenses</span></button>
+        <button class="trip-tab" data-tab="itinerary" onclick="switchTab('itinerary')"><span class="nav-icon nav-icon-blue">&#128211;</span><span>Itinerary</span></button>
+        <button class="trip-tab" data-tab="cafes" onclick="switchTab('cafes')"><span class="nav-icon nav-icon-gold">&#9749;</span><span>Cafes</span></button>
+        <button class="trip-tab" data-tab="packing" onclick="switchTab('packing')"><span class="nav-icon nav-icon-pink">&#127890;</span><span>Packing</span></button>
+        <button class="trip-tab" data-tab="polls" onclick="switchTab('polls')"><span class="nav-icon nav-icon-lilac">&#128202;</span><span>Polls</span></button>
+        <button class="trip-tab" data-tab="debts" onclick="switchTab('debts')"><span class="nav-icon nav-icon-orange">&#9878;&#65039;</span><span>Settle Up</span></button>
+      </nav>
+      <div class="trip-weather-card" id="trip-weather-card" aria-label="Weather for current trip destination">
+        <div class="trip-weather-card__top"><span><i class="material-symbols-outlined">water_drop</i><small>Humidity<br><b id="weather-humidity">62%</b></small></span><span><i class="material-symbols-outlined">air</i><small>Wind<br><b id="weather-wind">12 km/h</b></small></span></div>
+        <div class="trip-weather-card__main"><span class="trip-weather-card__sun material-symbols-outlined">wb_sunny</span><div><strong id="weather-temperature">28°C</strong><small id="trip-weather-destination">Your destination</small></div></div>
+        <div class="trip-weather-card__details"><span><i class="material-symbols-outlined">airwave</i><small>AQI<br><b id="weather-aqi">42</b></small></span><span><i class="material-symbols-outlined">device_thermostat</i><small>Real feel<br><b id="weather-feels">30°C</b></small></span><span><i class="material-symbols-outlined">speed</i><small>Pressure<br><b id="weather-pressure">1012 hPa</b></small></span></div>
+        <div class="trip-weather-card__status">LIVE WEATHER</div>
+      </div>
+    </div>
+    <div class="trip-header">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="trip-header-title" id="trip-title">Trip Name</span>
+        <span class="sync-badge" id="sync-badge" style="display:none;">☁️ Synced</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <span class="badge badge-location" id="trip-dates-badge"><span class="badge-icon">&#128205;</span><span class="badge-text"></span></span>
+        <span class="countdown-badge" id="trip-countdown">&#128197; -- days</span>
+        <button class="btn-share" id="share-btn" onclick="openShareModal()" title="Share trip link">
+          <span class="material-symbols-outlined" style="font-size:1rem;">share</span> Share
+        </button>
+      </div>
+    </div>
+    <!-- GUEST JOIN BANNER (shown when user opens a shared link) -->
+    <div id="guest-banner" style="display:none;" class="guest-banner">
+      <span class="guest-banner-icon">🔗</span>
+      <div>
+        <strong>You joined via a shared link!</strong>
+        <p>Add your name below to log expenses and itinerary items under your name.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+          <input id="guest-name-input" class="journal-input" type="text" placeholder="Your name..." style="max-width:200px;" />
+          <button class="btn btn-primary" onclick="setGuestName()" style="font-size:0.78rem;padding:8px 14px;">Join as Traveler</button>
+        </div>
+        <p id="guest-name-display" style="display:none;font-family:'Caveat',cursive;font-size:1.1rem;color:var(--secondary);margin-top:6px;"></p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="trip-meta-bar"></div>
+    <div class="summary-grid" id="trip-summary-grid"></div>
+    <div class="trip-tabs">
+      <button class="trip-tab active" data-tab="expenses" onclick="switchTab('expenses')">&#128184; Expenses</button>
+      <button class="trip-tab" data-tab="itinerary" onclick="switchTab('itinerary')">&#128211; Itinerary</button>
+      <button class="trip-tab" data-tab="cafes" onclick="switchTab('cafes')">&#9749; Cafes</button>
+      <button class="trip-tab" data-tab="packing" onclick="switchTab('packing')">&#127890; Packing</button>
+      <button class="trip-tab" data-tab="polls" onclick="switchTab('polls')">🗳️ Polls</button>
+      <button class="trip-tab" data-tab="debts" onclick="switchTab('debts')">&#9878;&#65039; Settle Up</button>
+    </div>
+
+

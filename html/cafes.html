@@ -1,0 +1,16 @@
+﻿    <!-- CAFES TAB -->
+    <div class="tab-panel" id="tab-cafes">
+      <h3 class="section-title" style="font-size:1.5rem;margin-bottom:16px;transform:rotate(0.5deg)">Curated Cafe Picks</h3>
+      <div class="cafe-search-row" style="display:flex;gap:10px;margin-bottom:20px;align-items:flex-end;">
+        <div style="flex:1;"><label class="input-label">DESTINATION</label><input id="cafe-city-input" class="journal-input"
+            type="text" placeholder="Paris, Tokyo, Goa..." onkeydown="if(event.key==='Enter')searchCafes()" /></div>
+        <button class="btn btn-primary" onclick="searchCafes()" style="font-size:0.78rem;padding:9px 16px;"><span
+            class="material-symbols-outlined" style="font-size:0.95rem;">search</span> Search</button>
+      </div>
+      <p class="cafe-source-note">Offline cafe picks · cute illustrative images · TripSplit ratings</p>
+      <div id="cafe-loading"
+        style="display:none;text-align:center;padding:20px;font-family:'Caveat',cursive;font-size:1.4rem;color:var(--on-surface-variant);">
+        Finding curated cafe picks...</div>
+      <div class="cafe-grid" id="cafe-grid"></div>
+    </div>
+

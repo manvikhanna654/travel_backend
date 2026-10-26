@@ -10,6 +10,7 @@ const termsField = document.querySelector('#auth-terms');
 const error = document.querySelector('#auth-error');
 const submit = document.querySelector('#auth-submit');
 let mode = params.get('mode') === 'signup' ? 'signup' : 'login';
+const API_BASE = 'http://localhost:5000/api';
 
 function setMode(nextMode) {
   mode = nextMode;
@@ -36,18 +37,10 @@ function setError(message) {
   submit.disabled = false;
 }
 
-function getUsers() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('users') || '[]');
-    return Array.isArray(stored) ? stored.filter((user) => user && typeof user === 'object') : [];
-  } catch (storageError) {
-    return [];
-  }
-}
-
-function saveSession(user) {
+function saveSession(user, token) {
   try {
     localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
+    localStorage.setItem('authToken', token);
     return true;
   } catch (storageError) {
     setError('Your browser blocked local storage. Please enable it and try again.');
@@ -58,7 +51,7 @@ function saveSession(user) {
 document.querySelector('#login-tab').addEventListener('click', () => setMode('login'));
 document.querySelector('#signup-tab').addEventListener('click', () => setMode('signup'));
 
-document.querySelector('#auth-form').addEventListener('submit', (event) => {
+document.querySelector('#auth-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   error.textContent = '';
   const name = nameField.value.trim();
@@ -69,23 +62,26 @@ document.querySelector('#auth-form').addEventListener('submit', (event) => {
   if (password.length < 6) return setError('Password must be at least 6 characters.');
   if (mode === 'signup' && confirmField.value !== password) return setError('Your passwords do not match.');
   if (mode === 'signup' && !termsField.checked) return setError('Please accept the terms to continue.');
-  const users = getUsers();
   submit.disabled = true;
-  if (mode === 'signup') {
-    if (users.some((user) => String(user.email || '').trim().toLowerCase() === email)) return setError('That email already has a journal. Try logging in.');
-    users.push({ name, email, password });
-    try {
-      localStorage.setItem('users', JSON.stringify(users));
-    } catch (storageError) {
-      return setError('Could not save your account in this browser. Please try again.');
-    }
-    if (!saveSession({ name, email })) return;
-  } else {
-    const user = users.find((item) => String(item.email || '').trim().toLowerCase() === email && item.password === password);
-    if (!user) return setError('Email or password did not match. Try again.');
-    if (!saveSession({ name: user.name, email: user.email })) return;
+  const endpoint = mode === 'signup' ? '/auth/signup' : '/auth/login';
+  const body = mode === 'signup' ? { name, email, password } : { email, password };
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const result = await response.json();
+    if (!response.ok) return setError(result.message || 'Authentication failed. Please try again.');
+    if (!saveSession(result.user, result.token)) return;
+    // Keep the dashboard on the same host/port that served this login page.
+    // This also avoids mixing localhost and 127.0.0.1 localStorage sessions.
+    window.location.assign(`${window.location.origin}/index.html?app=1`);
+  } catch (networkError) {
+    setError('Could not reach the backend. Make sure the server is running on port 5000.');
+  } finally {
+    submit.disabled = false;
   }
-  window.location.href = '../index.html?app=1';
 });
 
 setMode(mode);
